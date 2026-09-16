@@ -3,21 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kigali Legends</title>
+  <title>Kigali Legends — Open World</title>
   <link rel="stylesheet" href="./src/style.css" />
   <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.179.1/build/three.module.js"
-      }
-    }
+    {"imports":{"three":"https://unpkg.com/three@0.179.1/build/three.module.js"}}
   </script>
 </head>
 <body>
   <div id="hud">
-    <div class="brand">KIGALI <span>LEGENDS</span></div>
-    <div class="zone">ZONE: <strong>KIMIRONKO</strong></div>
-    <div class="help">WASD / Arrow Keys — Move</div>
+    <div class="topbar">
+      <div>
+        <div class="brand">KIGALI <span>LEGENDS</span></div>
+        <div class="zone">OPEN WORLD · <strong>KIMIRONKO</strong></div>
+      </div>
+      <div class="stats">
+        <span id="clock">08:00</span><span id="weather">CLEAR</span><span id="money">RWF 500</span><span id="rep">REP 0</span>
+      </div>
+    </div>
+    <div id="ai">KLG AI: CALM</div>
+    <div id="mission">MISSION: KIMIRONKO RUN</div>
+    <div id="vehicle">ON FOOT</div>
+    <div class="help">WASD / Arrows Move · E Enter Vehicle · R Rain · T Storm · M Mission</div>
   </div>
   <div id="game"></div>
   <script type="module" src="./src/main.js"></script>
