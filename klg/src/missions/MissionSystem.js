@@ -13,7 +13,7 @@ export class MissionSystem {
     const mission = this.missions.find(m => m.id === id);
     if (!mission) return;
     this.active = { ...mission, progress: 0, startedAt: performance.now() };
-    this.game.state.update({ mission: this.active });
+    this.game.state.update('mission', this.active);
     this.game.events.emit('mission:started', this.active);
   }
 
@@ -25,13 +25,13 @@ export class MissionSystem {
     this.game.stats.addReputation(rep);
     const finished = this.active;
     this.active = null;
-    this.game.state.update({ mission: null });
+    this.game.state.update('mission', null);
     this.game.events.emit('mission:completed', { ...finished, reward, reputation: rep });
   }
 
-  update() {
+  update(dt) {
     if (!this.active) return;
-    this.active.progress = Math.min(100, this.active.progress + 0.02);
+    this.active.progress = Math.min(100, this.active.progress + dt * 2.2);
     if (this.active.progress >= 100) this.complete();
   }
 }
