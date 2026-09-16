@@ -7,11 +7,12 @@ export class WeatherSystem {
     this.weather = game.state.get().world.weather ?? 'clear';
     this.accumulator = 0;
     this.rain = null;
+    this.setWeather(this.weather);
   }
 
   setWeather(type) {
     this.weather = type;
-    this.game.state.update({ world: { weather: type } });
+    this.game.state.update('world.weather', type);
     if (this.rain) {
       this.game.scene.remove(this.rain);
       this.rain.geometry.dispose();
@@ -38,7 +39,7 @@ export class WeatherSystem {
     this.time = (this.time + dt * 0.55) % 1440;
     if (this.accumulator > 8) {
       this.accumulator = 0;
-      this.game.state.update({ world: { time: Math.floor(this.time) } });
+      this.game.state.update('world.time', Math.floor(this.time));
     }
     const sun = this.game.sun;
     if (sun) {
