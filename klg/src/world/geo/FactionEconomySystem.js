@@ -1,0 +1,28 @@
+const CLAMP=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const STANDING={neutral:0,friendly:1,ally:2,trusted:3,cold:-1,hostile:-2,enemy:-3};
+const FACTIONS={
+ 'Market Circle':{district:'Kimironko',type:'commerce',base:1.15,goods:['food','parts','textiles']},
+ 'Night Route':{district:'Nyamirambo',type:'night',base:1.1,goods:['fuel','electronics','services']},
+ 'Hill Runners':{district:'Rebero',type:'transport',base:1.05,goods:['parts','vehicles','recovery']},
+ 'City Services':{district:'Kacyiru',type:'civic',base:.95,goods:['services','supplies','permits']},
+ 'Transport Network':{district:'Remera',type:'transport',base:1.08,goods:['fuel','parts','delivery']}
+};
+const GOODS={food:{value:80,volatility:.12},parts:{value:240,volatility:.2},textiles:{value:150,volatility:.16},fuel:{value:110,volatility:.18},electronics:{value:360,volatility:.3},services:{value:190,volatility:.1},vehicles:{value:900,volatility:.25},recovery:{value:280,volatility:.22},supplies:{value:210,volatility:.18},permits:{value:300,volatility:.08},delivery:{value:130,volatility:.14}};
+export class FactionEconomySystem{
+ constructor(game){this.game=game;this.tick=0;this.orderId=1;const saved=game.state.get().factionEconomy||{};this.state=saved.factions?{...saved}:this.empty();this.seed();this.bind();this.sync();}
+ empty(){return{factions:{},markets:{},orders:[],blackMarket:[],shocks:[],updatedAt:0};}
+ seed(){for(const [name,p] of Object.entries(FACTIONS)){if(!this.state.factions[name])this.state.factions[name]={name,...p,capital:900,stock:900,demand:1,supply:1,heat:0,activity:1,playerDiscount:0};if(!this.state.markets[name])this.state.markets[name]={faction:name,district:p.district,prices:{},demand:{},supply:{},trend:0};}}
+ bind(){this.game.events.on('faction:player-standing',e=>this.align(e.factions));this.game.events.on('district:trade-opportunity',e=>this.tradeSignal(e));this.game.events.on('faction:mission-resolved',e=>this.mission(e));this.game.events.on('faction:conflict-event',e=>this.conflict(e));this.game.events.on('world:consequence',e=>this.consequence(e));}
+ align(factions={}){for(const [name,src] of Object.entries(factions)){const f=this.factions(name),level=STANDING[src.standing]??0;f.playerDiscount=level>=2?.15:level>=1?.07:level<0?-.08:0;}}
+ factions(name){return this.state.factions[name]||(this.state.factions[name]={name,capital:500,stock:500,demand:1,supply:1,heat:0,activity:1,playerDiscount:0});}
+ price(faction,good){const f=this.factions(faction),g=GOODS[good]||GOODS.food;const pressure=1+(f.demand-f.supply)*.45+f.heat*.18;const trend=this.state.markets[faction]?.trend||0;return Math.max(10,Math.round(g.value*pressure*(1+trend)*((f.playerDiscount?1-f.playerDiscount:1))));}
+ stock(faction,good){const f=this.factions(faction),seed=(good.length*17+faction.length*11)%40;return Math.max(0,Math.round(f.stock*(.35+seed/100)));}
+ tradeSignal(e={}){const district=e.from||e.district;for(const f of Object.values(this.state.factions))if(f.district===district){f.demand=Math.min(1.8,f.demand+.08);this.order(f.name,f.goods?.[0]||'food',district);}}
+ order(faction,good,district){const f=this.factions(faction);if(!GOODS[good])good='food';const reward=this.price(faction,good);const order={id:this.orderId++,faction,good,district:district||f.district,reward,quantity:1,expires:Date.now()+60000,status:'available'};this.state.orders.unshift(order);this.state.orders=this.state.orders.slice(0,40);this.game.events.emit('faction:economic-order',order);}
+ mission(e={}){const f=this.factions(e.faction);f.capital=Math.max(0,f.capital+(e.success?Number(e.reward||0)*.12:-70));f.demand=CLAMP(f.demand+(e.success?.03:-.04),.5,2);}
+ conflict(e={}){const names=[e.conflict?.a,e.conflict?.b].filter(Boolean);for(const n of names){const f=this.factions(n);f.heat=CLAMP(f.heat+.04);f.supply=CLAMP(f.supply-.08,.2,2);f.demand=CLAMP(f.demand+.1,.5,2);const good=f.goods?.[0]||'food';this.state.blackMarket.unshift({faction:n,district:e.district||f.district,good,price:Math.round(this.price(n,good)*1.35),risk:CLAMP(.45+f.heat),createdAt:Date.now()});}this.state.blackMarket=this.state.blackMarket.slice(0,24);}
+ consequence(e={}){const d=e.district;for(const f of Object.values(this.state.factions))if(f.district===d)f.stock=Math.max(50,f.stock-Number(e.heat||0)*35);}
+ update(dt){this.tick+=dt;if(this.tick<5)return;const step=this.tick;this.tick=0;for(const f of Object.values(this.state.factions)){f.demand=CLAMP(f.demand+(f.activity-1)*.01*step,.5,2);f.supply=CLAMP(f.supply+(1-f.demand)*.012*step,.2,2);f.heat*=Math.pow(.94,step);f.capital=Math.min(20000,f.capital+step*1.8);const m=this.state.markets[f.name];if(m){m.trend=CLAMP(m.trend+(f.demand-f.supply)*.01*step,-.35,.35);for(const good of f.goods||[]){m.prices[good]=this.price(f.name,good);m.demand[good]=f.demand;m.supply[good]=f.supply;}}}for(const o of this.state.orders)if(o.expires<Date.now()&&o.status==='available')o.status='expired';this.state.orders=this.state.orders.filter(o=>o.status!=='expired'||o.id>this.orderId-15);this.state.updatedAt=Date.now();this.sync();}
+ quote(faction,good){return{faction,good,price:this.price(faction,good),stock:this.stock(faction,good),blackMarket:this.state.blackMarket.filter(x=>x.faction===faction&&x.good===good).slice(0,3)};}
+ sync(){this.game.state.update({factionEconomy:this.state});}
+}
