@@ -6,6 +6,7 @@ import { WorldState } from './WorldState.js';
 import { GameplayEventRouter } from './GameplayEventRouter.js';
 import { PlayerController } from '../player/PlayerController.js';
 import { PlayerStats } from '../player/PlayerStats.js';
+import { PlayerIdentitySystem } from '../player/PlayerIdentitySystem.js';
 import { VehicleSystem } from '../vehicles/VehicleSystem.js';
 import { VehicleOwnershipSystem } from '../vehicles/VehicleOwnershipSystem.js';
 import { VehiclePhysicsSystem } from '../vehicles/VehiclePhysicsSystem.js';
@@ -17,6 +18,9 @@ import { NPCSystem } from '../world/NPCSystem.js';
 import { NPCPopulationDirector } from '../world/NPCPopulationDirector.js';
 import { KigaliWorldSystem } from '../world/KigaliWorldSystem.js';
 import { CityLifeSystem } from '../world/CityLifeSystem.js';
+import { WorldPressureSystem } from '../world/WorldPressureSystem.js';
+import { EmergentOpportunitySystem } from '../world/EmergentOpportunitySystem.js';
+import { ConsequenceSystem } from '../world/ConsequenceSystem.js';
 import { PoliceSystem } from '../world/PoliceSystem.js';
 import { NavigationSystem } from '../world/NavigationSystem.js';
 import { MissionSystem } from '../missions/MissionSystem.js';
@@ -70,6 +74,10 @@ export class Game {
     this.ai=new AIDirector(this);
     this.world=new KigaliWorldSystem(this);
     this.cityLife=new CityLifeSystem(this);
+    this.worldPressure=new WorldPressureSystem(this);
+    this.opportunities=new EmergentOpportunitySystem(this);
+    this.consequences=new ConsequenceSystem(this);
+    this.identity=new PlayerIdentitySystem(this);
     this.environment=new EnvironmentSystem(this);
     this.police=new PoliceSystem(this);
     this.wanted=new WantedSystem(this);
@@ -84,11 +92,13 @@ export class Game {
     this.bindRuntimeEvents();
     this.missions.start('first-run');
     this.worldState.refresh();
+    this.identity.sync();
   }
   bindRuntimeEvents(){
     this.events.on('vehicle:changed',v=>{const e=document.querySelector('#vehicle');if(e)e.textContent=v?'DRIVING: '+v.name:'ON FOOT';});
     this.events.on('ai:world',d=>{this.state.update({ai:{phase:d.phase}});const e=document.querySelector('#ai');if(e)e.textContent='KLG AI: '+d.phase.toUpperCase();});
     this.events.on('camera:changed',d=>{const e=document.querySelector('#camera-mode');if(e)e.textContent='CAM: '+d.mode;});
+    this.events.on('world:consequence',d=>{const e=document.querySelector('#consequence');if(e)e.textContent=`CITY REACTS: +RWF ${Math.floor(d.reward||0)} · REP +${d.rep||0}`;});
   }
   setupLighting(){this.scene.background=new THREE.Color(0x8bb7d8);this.scene.fog=new THREE.Fog(0x8bb7d8,55,260);this.scene.add(new THREE.HemisphereLight(0xffffff,0x45604b,2.0));this.sun=new THREE.DirectionalLight(0xffffff,2.8);this.sun.position.set(35,55,20);this.sun.castShadow=true;this.sun.shadow.mapSize.set(2048,2048);this.sun.shadow.camera.near=1;this.sun.shadow.camera.far=300;this.scene.add(this.sun);}
   setupPlayer(){this.player=new THREE.Mesh(new THREE.CapsuleGeometry(.65,1.2,6,12),new THREE.MeshStandardMaterial({color:0x1d2630,roughness:.7}));const s=this.state.get().player.position;this.player.position.set(s.x,s.y,s.z);this.player.castShadow=true;this.scene.add(this.player);this.controller=new PlayerController(this.player,this.state,this.events);}
@@ -111,6 +121,10 @@ export class Game {
     this.ai.update(dt);
     this.world.update(dt);
     this.cityLife.update(dt);
+    this.worldPressure.update(dt);
+    this.opportunities.update(dt);
+    this.consequences.update(dt);
+    this.identity.update(dt);
     this.environment.update(dt);
     this.police.update(dt);
     this.wanted.update(dt);
