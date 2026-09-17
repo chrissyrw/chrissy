@@ -1,10 +1,6 @@
 export class MissionDirector {
   constructor(game){this.game=game;this.timer=0;this.cooldown=8;this.history=[];this.pending=null;this.bind();}
-  bind(){
-    this.game.events.on('ai:world-director',d=>this.world=d);
-    this.game.events.on('activity:requested',a=>this.pending=a);
-    this.game.events.on('mission:completed',m=>{this.history.unshift(m.id);this.history=this.history.slice(0,6);this.cooldown=10;if(m.activityId)this.history.unshift(m.activityId);});
-  }
+  bind(){this.game.events.on('ai:world-director',d=>this.world=d);this.game.events.on('activity:requested',a=>this.pending=a);this.game.events.on('mission:completed',m=>{this.history.unshift(m.id);this.history=this.history.slice(0,6);this.cooldown=10;if(m.activityId)this.history.unshift(m.activityId);});}
   hour(){return Math.floor(this.game.state.get().world.time/60)%24;}
   score(m){const d=this.world||{},w=this.game.state.get().world,stats=this.game.stats;let s=1;if(this.history.includes(m.id))s*=.35;if(m.tags?.includes('night')&&this.hour()>=18)s*=2;if(m.tags?.includes('storm')&&w.weather==='storm')s*=2.8;if(m.tags?.includes('traffic')&&(d.congestion||0)>45)s*=2;if(m.tags?.includes('police')&&(d.heat||0)>30)s*=2.2;if(m.tags?.includes('crowd')&&(d.population||1)>1.2)s*=1.8;if(m.tags?.includes('reputation'))s*=1+Math.min(1,(stats.reputation||0)/100);return s*(.8+Math.random()*.4);}
   baseCandidates(){return[
@@ -14,28 +10,8 @@ export class MissionDirector {
     {id:'ai-police-escape',title:'Heat Run',description:'Drive through the city while wanted and reach the safe zone.',objective:{type:'location',x:-64,z:32,radius:9},reward:1100,reputation:18,tags:['police'],district:'Nyamirambo'},
     {id:'ai-city-circuit',title:'Kigali Grand Circuit',description:'Visit three different districts in one continuous drive.',objective:{type:'districts',count:3},reward:950,reputation:20,tags:['crowd','reputation'],district:'Kigali'}
   ];}
-  activityMission(a){
-    const map={
-      TIME_TRIAL:{objective:{type:'location',x:-64,z:32,radius:9},reward:720,reputation:9},
-      DELIVERY:{objective:{type:'location',x:-16,z:14,radius:8},reward:620,reputation:8},
-      CONTRACT:{objective:{type:'location',x:20,z:0,radius:10},reward:950,reputation:14},
-      LOGISTICS:{objective:{type:'location',x:0,z:-32,radius:10},reward:820,reputation:11},
-      HILL_CLIMB:{objective:{type:'location',x:32,z:64,radius:10},reward:780,reputation:10},
-      TECHNICAL_RUN:{objective:{type:'location',x:-64,z:-44,radius:10},reward:800,reputation:11}
-    };
-    const cfg=map[a.type]||map.DELIVERY;
-    return{id:`ai-activity-${a.id}`,activityId:a.id,title:a.title,description:`AI generated ${a.type.toLowerCase()} activity in ${a.district}.`,objective:cfg.objective,reward:cfg.reward,reputation:cfg.reputation,tags:[a.type.toLowerCase(),a.district.toLowerCase()]};
-  }
-  choose(){
-    if(this.pending){const a=this.pending;this.pending=null;return{mission:this.activityMission(a),fromActivity:true};}
-    const candidates=this.baseCandidates();return{mission:candidates.sort((a,b)=>this.score(b)-this.score(a))[0],fromActivity:false};
-  }
-  update(dt){
-    this.timer+=dt;this.cooldown=Math.max(0,this.cooldown-dt);
-    if(this.timer<4||this.cooldown>0||this.game.missions.active)return;
-    this.timer=0;const choice=this.choose(),mission=choice.mission;if(!mission)return;
-    this.game.missions.missions=this.game.missions.missions.filter(m=>!m.id.startsWith('ai-'));this.game.missions.missions.push(mission);this.game.missions.start(mission.id);
-    this.game.events.emit('mission:director',{mission,reason:choice.fromActivity?'ACTIVITY_AI':(this.world?.phase||'CITY AI')});
-    const el=document.querySelector('#mission-ai');if(el)el.textContent=`MISSION AI: ${mission.title.toUpperCase()}`;
-  }
+  activityMission(a){const map={TIME_TRIAL:{objective:{type:'location',x:-64,z:32,radius:9},reward:720,reputation:9},DELIVERY:{objective:{type:'location',x:-16,z:14,radius:8},reward:620,reputation:8},CONTRACT:{objective:{type:'location',x:20,z:0,radius:10},reward:950,reputation:14},LOGISTICS:{objective:{type:'location',x:0,z:-32,radius:10},reward:820,reputation:11},HILL_CLIMB:{objective:{type:'location',x:32,z:64,radius:10},reward:780,reputation:10},TECHNICAL_RUN:{objective:{type:'location',x:-64,z:-44,radius:10},reward:800,reputation:11}};const cfg=map[a.type]||map.DELIVERY;return{id:`ai-activity-${a.id}`,activityId:a.id,title:a.title,description:`AI generated ${a.type.toLowerCase()} activity in ${a.district}.`,objective:cfg.objective,reward:cfg.reward,reputation:cfg.reputation,tags:[a.type.toLowerCase(),a.district.toLowerCase()]};}
+  choose(){if(this.pending){const a=this.pending;this.pending=null;return{mission:this.activityMission(a),fromActivity:true};}const candidates=this.baseCandidates();return{mission:candidates.sort((a,b)=>this.score(b)-this.score(a))[0],fromActivity:false};}
+  applyProgressionReward(mission){const scale=this.game.state.get().economy?.rewardScale||1;return{...mission,reward:Math.round(mission.reward*scale)};}
+  update(dt){this.timer+=dt;this.cooldown=Math.max(0,this.cooldown-dt);if(this.timer<4||this.cooldown>0||this.game.missions.active)return;this.timer=0;const choice=this.choose();let mission=choice.mission;if(!mission)return;mission=this.applyProgressionReward(mission);this.game.missions.missions=this.game.missions.missions.filter(m=>!m.id.startsWith('ai-'));this.game.missions.missions.push(mission);this.game.missions.start(mission.id);this.game.events.emit('mission:director',{mission,reason:choice.fromActivity?'ACTIVITY_AI':(this.world?.phase||'CITY AI')});const el=document.querySelector('#mission-ai');if(el)el.textContent=`MISSION AI: ${mission.title.toUpperCase()} · RWF ${mission.reward}`;}
 }
