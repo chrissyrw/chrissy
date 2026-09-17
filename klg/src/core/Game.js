@@ -21,6 +21,8 @@ import { CityLifeSystem } from '../world/CityLifeSystem.js';
 import { WorldPressureSystem } from '../world/WorldPressureSystem.js';
 import { EmergentOpportunitySystem } from '../world/EmergentOpportunitySystem.js';
 import { ConsequenceSystem } from '../world/ConsequenceSystem.js';
+import { RelationshipSystem } from '../world/RelationshipSystem.js';
+import { DistrictMemorySystem } from '../world/DistrictMemorySystem.js';
 import { PoliceSystem } from '../world/PoliceSystem.js';
 import { NavigationSystem } from '../world/NavigationSystem.js';
 import { MissionSystem } from '../missions/MissionSystem.js';
@@ -77,6 +79,8 @@ export class Game {
     this.worldPressure=new WorldPressureSystem(this);
     this.opportunities=new EmergentOpportunitySystem(this);
     this.consequences=new ConsequenceSystem(this);
+    this.relationships=new RelationshipSystem(this);
+    this.districtMemory=new DistrictMemorySystem(this);
     this.identity=new PlayerIdentitySystem(this);
     this.environment=new EnvironmentSystem(this);
     this.police=new PoliceSystem(this);
@@ -124,6 +128,8 @@ export class Game {
     this.worldPressure.update(dt);
     this.opportunities.update(dt);
     this.consequences.update(dt);
+    this.relationships.update(dt);
+    this.districtMemory.update(dt);
     this.identity.update(dt);
     this.environment.update(dt);
     this.police.update(dt);
