@@ -1,37 +1,11 @@
 export class MissionSystem {
-  constructor(game) {
-    this.game = game;
-    this.active = null;
-    this.missions = [
-      { id: 'first-run', title: 'Kimironko Run', description: 'Reach the market district before the timer ends.', reward: 250, reputation: 5 },
-      { id: 'night-drive', title: 'Night Drive', description: 'Take the Kigali Runner across the city after sunset.', reward: 450, reputation: 10 },
-      { id: 'storm-chase', title: 'Storm Chase', description: 'Complete a drive while the city is under rain.', reward: 700, reputation: 15 }
-    ];
-  }
-
-  start(id = 'first-run') {
-    const mission = this.missions.find(m => m.id === id);
-    if (!mission) return;
-    this.active = { ...mission, progress: 0, startedAt: performance.now() };
-    this.game.state.update('mission', this.active);
-    this.game.events.emit('mission:started', this.active);
-  }
-
-  complete() {
-    if (!this.active) return;
-    const reward = this.active.reward;
-    const rep = this.active.reputation;
-    this.game.stats.addMoney(reward);
-    this.game.stats.addReputation(rep);
-    const finished = this.active;
-    this.active = null;
-    this.game.state.update('mission', null);
-    this.game.events.emit('mission:completed', { ...finished, reward, reputation: rep });
-  }
-
-  update(dt) {
-    if (!this.active) return;
-    this.active.progress = Math.min(100, this.active.progress + dt * 2.2);
-    if (this.active.progress >= 100) this.complete();
-  }
+  constructor(game){this.game=game;this.active=null;this.missions=[
+    {id:'first-run',title:'Kimironko Run',description:'Drive to Kimironko Market and stop inside the objective zone.',objective:{type:'location',x:-16,z:14,radius:8},reward:250,reputation:5},
+    {id:'night-drive',title:'Night Drive',description:'Reach Nyarutarama after sunset while driving.',objective:{type:'night-location',x:54,z:42,radius:10},reward:450,reputation:10},
+    {id:'storm-chase',title:'Storm Chase',description:'Reach Remera Fuel during a storm.',objective:{type:'storm-location',x:54,z:-44,radius:10},reward:700,reputation:15},
+    {id:'city-tour',title:'Kigali Circuit',description:'Visit three districts in one continuous drive.',objective:{type:'districts',count:3},reward:900,reputation:20}
+  ];}
+  start(id='first-run'){const m=this.missions.find(x=>x.id===id);if(!m)return;this.active={...m,progress:0,visited:[],startedAt:performance.now()};this.game.state.update('mission',this.active);this.game.events.emit('mission:started',this.active);}
+  complete(){if(!this.active)return;const finished=this.active;this.game.stats.addMoney(finished.reward);this.game.stats.addReputation(finished.reputation);this.active=null;this.game.state.update('mission',null);this.game.events.emit('mission:completed',{...finished});}
+  update(){if(!this.active)return;const p=this.game.vehicles.active?this.game.vehicles.active.mesh.position:this.game.player.position,w=this.game.state.get().world,o=this.active.objective;let done=false;if(o.type==='location')done=Math.hypot(p.x-o.x,p.z-o.z)<=o.radius;if(o.type==='night-location')done=w.time>=1140||w.time<300;if(done&&o.type==='night-location')done=Math.hypot(p.x-o.x,p.z-o.z)<=o.radius&&!!this.game.vehicles.active;if(o.type==='storm-location')done=w.weather==='storm'&&Math.hypot(p.x-o.x,p.z-o.z)<=o.radius;if(o.type==='districts'){const d=w.district;if(!this.active.visited.includes(d))this.active.visited.push(d);done=this.active.visited.length>=o.count;}this.active.progress=o.type==='districts'?Math.min(100,this.active.visited.length/o.count*100):done?100:Math.min(99,this.active.progress);this.game.state.update('mission',this.active);if(done)this.complete();}
 }
