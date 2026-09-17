@@ -5,7 +5,7 @@ export class VehicleCustomizationSystem {
     const v=this.getVehicle(),s=this.game.state.get();if(!v)return false;
     const price=this.prices[type]||0;if(s.player.money<price)return false;
     if(type==='paint'){const c=this.palettes[value]??this.palettes.red;v.mesh.children[0].material.color.setHex(c);v.paint=value;}
-    if(type==='wheels'){v.wheelStyle=value;}
+    if(type==='wheels'){v.wheelStyle=value;this.game.vehicles.setWheelStyle(v,value);}
     if(type==='tires'){v.tireLevel=(v.tireLevel||0)+1;v.grip=Math.min(.99,(v.grip||.92)+.035);}
     if(type==='engine'){v.engineLevel=(v.engineLevel||0)+1;v.maxSpeed=(v.maxSpeed||70)+4;v.accel=(v.accel||10)+1.5;}
     if(type==='brakes'){v.brakeLevel=(v.brakeLevel||0)+1;v.brakePower=(v.brakePower||1)+.15;}
