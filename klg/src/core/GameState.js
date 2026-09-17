@@ -1,7 +1,7 @@
 const STORAGE_KEY = 'klg_game_state_v3';
 const DEFAULT_STATE = {
   version: 3,
-  player: { name: 'KLG Legend', health: 100, stamina: 100, money: 500, reputation: 0, position: { x: 0, y: 1.25, z: 0 } },
+  player: { name: 'KLG Legend', health: 100, stamina: 100, money: 500, reputation: 0, xp: 0, level: 1, unlocks: [], position: { x: 0, y: 1.25, z: 0 } },
   world: { day: 1, time: 8 * 60, weather: 'clear', district: 'Kimironko' },
   mission: null, inventory: [], unlockedLocations: ['Kimironko'],
   ai: { phase: 'calm' }, economy: { fuel: 100, prices: {}, businesses: {} },
