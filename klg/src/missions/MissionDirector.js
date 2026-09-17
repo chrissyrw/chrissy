@@ -1,5 +1,3 @@
-import * as THREE from 'three';
-
 export class MissionDirector {
   constructor(game){this.game=game;this.timer=0;this.cooldown=8;this.history=[];this.pending=null;this.bind();}
   bind(){
@@ -29,15 +27,15 @@ export class MissionDirector {
     return{id:`ai-activity-${a.id}`,activityId:a.id,title:a.title,description:`AI generated ${a.type.toLowerCase()} activity in ${a.district}.`,objective:cfg.objective,reward:cfg.reward,reputation:cfg.reputation,tags:[a.type.toLowerCase(),a.district.toLowerCase()]};
   }
   choose(){
-    if(this.pending){const a=this.pending;this.pending=null;return this.activityMission(a);}
-    const candidates=this.baseCandidates();return candidates.sort((a,b)=>this.score(b)-this.score(a))[0];
+    if(this.pending){const a=this.pending;this.pending=null;return{mission:this.activityMission(a),fromActivity:true};}
+    const candidates=this.baseCandidates();return{mission:candidates.sort((a,b)=>this.score(b)-this.score(a))[0],fromActivity:false};
   }
   update(dt){
     this.timer+=dt;this.cooldown=Math.max(0,this.cooldown-dt);
     if(this.timer<4||this.cooldown>0||this.game.missions.active)return;
-    this.timer=0;const mission=this.choose();if(!mission)return;
+    this.timer=0;const choice=this.choose(),mission=choice.mission;if(!mission)return;
     this.game.missions.missions=this.game.missions.missions.filter(m=>!m.id.startsWith('ai-'));this.game.missions.missions.push(mission);this.game.missions.start(mission.id);
-    this.game.events.emit('mission:director',{mission,reason:this.pending?'ACTIVITY_AI':(this.world?.phase||'CITY AI')});
+    this.game.events.emit('mission:director',{mission,reason:choice.fromActivity?'ACTIVITY_AI':(this.world?.phase||'CITY AI')});
     const el=document.querySelector('#mission-ai');if(el)el.textContent=`MISSION AI: ${mission.title.toUpperCase()}`;
   }
 }
