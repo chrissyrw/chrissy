@@ -1,0 +1,14 @@
+const CLAMP=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+export class FactionConflictSystem{
+ constructor(game){this.game=game;this.tick=0;const saved=game.state.get().factionConflict||{};this.state=saved.conflicts?{...saved}:this.empty();this.bind();this.sync();}
+ empty(){return{conflicts:{},active:[],pressure:{},events:[],updatedAt:0};}
+ bind(){this.game.events.on('npc:faction-dynamics',e=>this.scan(e));this.game.events.on('faction:territory-pressure',e=>this.pressure(e));this.game.events.on('faction:mission-resolved',e=>this.mission(e));}
+ scan(){const dyn=this.game.npcFactionDynamics?.state||{};const rivals=dyn.rivalries||{};for(const r of Object.values(rivals)){if(r.strength<.2)continue;const id=[r.a,r.b].sort().join(':');const c=this.state.conflicts[id]||(this.state.conflicts[id]={id,a:r.a,b:r.b,intensity:0,stage:'tension',district:null,updatedAt:Date.now()});c.intensity=CLAMP(c.intensity+r.strength*.04);c.stage=c.intensity>.78?'active':c.intensity>.42?'escalating':'tension';c.updatedAt=Date.now();const a=this.game.npcRelationshipWeb?.state?.factions?.[r.a],b=this.game.npcRelationshipWeb?.state?.factions?.[r.b];c.district=a?.district||b?.district||null;}
+ this.refreshActive();}
+ pressure(e={}){for(const c of Object.values(this.state.conflicts)){if(c.district!==e.district)continue;c.intensity=CLAMP(c.intensity+Number(e.heat||0)*.08);c.stage=c.intensity>.78?'active':c.intensity>.42?'escalating':'tension';this.state.events.push({type:'territory-pressure',conflict:c.id,district:e.district,at:Date.now()});}this.refreshActive();this.sync();}
+ mission(e={}){if(!e.faction)return;for(const c of Object.values(this.state.conflicts))if(c.a===e.faction||c.b===e.faction)c.intensity=CLAMP(c.intensity+(e.success?.03:-.02));this.refreshActive();}
+ refreshActive(){this.state.active=Object.values(this.state.conflicts).filter(c=>c.intensity>.4).map(c=>({...c}));}
+ update(dt){this.tick+=dt;if(this.tick<6)return;const step=this.tick;this.tick=0;for(const c of Object.values(this.state.conflicts)){c.intensity*=Math.pow(.985,step);if(c.intensity<.08)c.stage='quiet';else if(c.intensity<.42)c.stage='tension';else if(c.intensity<.78)c.stage='escalating';else c.stage='active';if(c.stage==='active'&&c.district)this.game.events.emit('faction:conflict-event',{conflict:{...c},district:c.district});}this.refreshActive();this.state.events=this.state.events.slice(-64);this.state.updatedAt=Date.now();this.sync();}
+ profile(id){return this.state.conflicts[id]?{...this.state.conflicts[id]}:null;}
+ sync(){this.game.state.update({factionConflict:this.state});}
+}
