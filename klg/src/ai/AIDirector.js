@@ -1,4 +1,5 @@
 import { WorldDirector } from './WorldDirector.js';
+import { ActivityDirector } from './ActivityDirector.js';
 
 export class AIDirector {
   constructor(game) {
@@ -6,11 +7,13 @@ export class AIDirector {
     this.elapsed = 0;
     this.phase = 'calm';
     this.worldDirector = new WorldDirector(game);
+    this.activityDirector = new ActivityDirector(game);
   }
 
   update(dt) {
     this.elapsed += dt;
     this.worldDirector.update(dt);
+    this.activityDirector.update(dt);
     if (this.elapsed < 12) return;
     this.elapsed = 0;
     const hour = this.game.state.get().world.time / 60;
