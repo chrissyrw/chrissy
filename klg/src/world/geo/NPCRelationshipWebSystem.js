@@ -1,84 +1,27 @@
+import { NPCFactionDynamicsSystem } from './NPCFactionDynamicsSystem.js';
 const CLAMP=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const TYPES=['friend','rival','family','crew','business','contact'];
-const FACTIONS={
-  'Market Circle':{type:'business',district:'Kimironko',cohesion:.72,influence:.55},
-  'Night Route':{type:'crew',district:'Nyamirambo',cohesion:.64,influence:.48},
-  'Hill Runners':{type:'crew',district:'Rebero',cohesion:.58,influence:.42},
-  'City Services':{type:'civic',district:'Kacyiru',cohesion:.8,influence:.6},
-  'Transport Network':{type:'transport',district:'Remera',cohesion:.68,influence:.52}
-};
-
+const FACTIONS={'Market Circle':{type:'business',district:'Kimironko',cohesion:.72,influence:.55},'Night Route':{type:'crew',district:'Nyamirambo',cohesion:.64,influence:.48},'Hill Runners':{type:'crew',district:'Rebero',cohesion:.58,influence:.42},'City Services':{type:'civic',district:'Kacyiru',cohesion:.8,influence:.6},'Transport Network':{type:'transport',district:'Remera',cohesion:.68,influence:.52}};
 export class NPCRelationshipWebSystem{
-  constructor(game){
-    this.game=game;this.tick=0;this.nextId=1;
-    const saved=game.state.get().npcRelationshipWeb||{};
-    this.state=saved.nodes?{...saved}:this.empty();
-    this.seedFactions();this.bind();this.sync();
-  }
-  empty(){return{nodes:{},links:{},factions:{},events:[],network:{density:0,cohesion:0,influence:0},updatedAt:0};}
-  seedFactions(){
-    for(const [name,p] of Object.entries(FACTIONS))if(!this.state.factions[name])this.state.factions[name]={name,...p,members:[],trust:0.35,heat:0,opportunities:0};
-  }
-  bind(){
-    this.game.events.on('npc:memory-recorded',e=>this.memorySignal(e));
-    this.game.events.on('npc:social-interaction',e=>this.interaction(e));
-    this.game.events.on('npc:social-decision',e=>this.decision(e));
-    this.game.events.on('npc:reputation-network',e=>this.reputationSignal(e));
-    this.game.events.on('world:consequence',e=>this.consequence(e));
-    this.game.events.on('business:orders',e=>this.businessSignal(e));
-    this.game.events.on('delivery:opportunity',e=>this.opportunity(e));
-  }
-  ensureNode(id,data={}){
-    const key=String(id||'unknown');
-    if(!this.state.nodes[key])this.state.nodes[key]={id:key,type:data.type||'npc',name:data.name||key,faction:null,activity:0,trust:0.35,influence:0,contacts:0};
-    return this.state.nodes[key];
-  }
-  link(a,b,type='friend',weight=.2){
-    if(!a||!b||a===b||!TYPES.includes(type))return null;
-    const key=[String(a),String(b)].sort().join(':');
-    const l=this.state.links[key]||(this.state.links[key]={a:String(a),b:String(b),type,weight:0,meetings:0,at:Date.now()});
-    l.type=type;l.weight=CLAMP(l.weight+weight);l.meetings++;l.at=Date.now();return l;
-  }
-  factionFor(node){
-    const district=node?.district||this.game.state.get().world?.district;
-    return Object.values(this.state.factions).find(f=>f.district===district)||null;
-  }
-  joinFaction(id,name){
-    const f=this.state.factions[name];if(!f)return false;
-    const n=this.ensureNode(id);if(n.faction&&this.state.factions[n.faction])this.leaveFaction(id,n.faction);
-    n.faction=name;if(!f.members.includes(n.id))f.members.push(n.id);f.trust=CLAMP(f.trust+.025);this.link(n.id,name,'crew',.08);this.game.events.emit('npc:faction-joined',{npcId:n.id,faction:name});this.sync();return true;
-  }
-  leaveFaction(id,name){
-    const f=this.state.factions[name];const n=this.ensureNode(id);if(!f)return false;f.members=f.members.filter(x=>x!==n.id);if(n.faction===name)n.faction=null;f.cohesion=CLAMP(f.cohesion-.03);this.game.events.emit('npc:faction-left',{npcId:n.id,faction:name});this.sync();return true;
-  }
-  memorySignal(e={}){
-    const n=this.ensureNode(e.npcId);n.activity++;n.trust=CLAMP(Number(e.trust||0)/100);
-    const faction=this.state.factions[n.faction];if(faction){faction.trust=CLAMP(faction.trust+(Number(e.trust||0)>0?.015:-.01));if(Number(e.reputation||0)<-20)faction.heat=CLAMP(faction.heat+.03);}
-    if(!n.faction&&Number(e.reputation||0)>8){const f=this.factionFor({district:e.district});if(f)this.joinFaction(n.id,f.name);}
-    this.sync();
-  }
-  interaction(e={}){
-    const a=this.ensureNode(e.a),b=this.ensureNode(e.b);const type=e.type==='rivalry'?'rival':e.type==='help'||e.type==='cooperation'?'friend':'contact';
-    this.link(a.id,b.id,type,e.type==='rivalry'?.12:.07);
-    if(type==='rival'){a.trust=CLAMP(a.trust-.03);b.trust=CLAMP(b.trust-.03);}else{a.trust=CLAMP(a.trust+.015);b.trust=CLAMP(b.trust+.015);}
-    this.state.events.push({type:'interaction',a:a.id,b:b.id,relation:type,at:Date.now()});this.trim();this.sync();
-  }
-  decision(e={}){const n=this.ensureNode(e.npcId);n.activity++;if(e.action==='seek-group'&&!n.faction){const f=this.factionFor({district:e.district});if(f)this.joinFaction(n.id,f.name);}if(e.action==='avoid-risk')n.trust=CLAMP(n.trust-.01);}
-  reputationSignal(e={}){this.state.network.reputation=e;}
-  consequence(e={}){const district=e.district;for(const f of Object.values(this.state.factions))if(f.district===district)f.heat=CLAMP(f.heat+Number(e.heat||0)*.12);this.sync();}
-  businessSignal(e={}){for(const f of Object.values(this.state.factions))if(f.type==='business')f.opportunities++;this.sync();}
-  opportunity(e={}){const district=e.district||this.game.state.get().world?.district;for(const f of Object.values(this.state.factions))if(f.district===district)f.opportunities++;this.sync();}
-  trim(){this.state.events=this.state.events.slice(-64);}
-  factionProfile(name){const f=this.state.factions[name];if(!f)return null;return{...f,members:[...f.members]};}
-  relationship(a,b){const key=[String(a),String(b)].sort().join(':');return this.state.links[key]||null;}
-  update(dt){
-    this.tick+=dt;if(this.tick<3)return;const step=this.tick;this.tick=0;
-    const links=Object.values(this.state.links),nodes=Object.values(this.state.nodes),factions=Object.values(this.state.factions);
-    for(const l of links)l.weight*=Math.pow(.995,step);
-    for(const f of factions){f.cohesion=CLAMP(f.cohesion+(f.members.length?0.002:-.004)*step);f.heat*=Math.pow(.9,step);f.trust*=Math.pow(.995,step);}
-    const activeLinks=links.filter(l=>l.weight>.05).length;this.state.network={density:nodes.length?activeLinks/Math.max(1,nodes.length*2):0,cohesion:factions.length?factions.reduce((a,f)=>a+f.cohesion,0)/factions.length:0,influence:factions.length?factions.reduce((a,f)=>a+f.influence,0)/factions.length:0};
-    this.state.updatedAt=Date.now();this.trim();this.sync();
-    this.game.events.emit('npc:relationship-network',{nodes:nodes.length,links:activeLinks,factions:factions.length,...this.state.network});
-  }
-  sync(){this.game.state.update({npcRelationshipWeb:this.state});}
+ constructor(game){this.game=game;this.tick=0;this.nextId=1;const saved=game.state.get().npcRelationshipWeb||{};this.state=saved.nodes?{...saved}:this.empty();this.seedFactions();this.bind();this.sync();this.dynamics=new NPCFactionDynamicsSystem(game);}
+ empty(){return{nodes:{},links:{},factions:{},events:[],network:{density:0,cohesion:0,influence:0},updatedAt:0};}
+ seedFactions(){for(const [name,p] of Object.entries(FACTIONS))if(!this.state.factions[name])this.state.factions[name]={name,...p,members:[],trust:0.35,heat:0,opportunities:0};}
+ bind(){this.game.events.on('npc:memory-recorded',e=>this.memorySignal(e));this.game.events.on('npc:social-interaction',e=>this.interaction(e));this.game.events.on('npc:social-decision',e=>this.decision(e));this.game.events.on('npc:reputation-network',e=>this.reputationSignal(e));this.game.events.on('world:consequence',e=>this.consequence(e));this.game.events.on('business:orders',e=>this.businessSignal(e));this.game.events.on('delivery:opportunity',e=>this.opportunity(e));}
+ ensureNode(id,data={}){const key=String(id||'unknown');if(!this.state.nodes[key])this.state.nodes[key]={id:key,type:data.type||'npc',name:data.name||key,faction:null,activity:0,trust:0.35,influence:0,contacts:0};return this.state.nodes[key];}
+ link(a,b,type='friend',weight=.2){if(!a||!b||a===b||!TYPES.includes(type))return null;const key=[String(a),String(b)].sort().join(':');const l=this.state.links[key]||(this.state.links[key]={a:String(a),b:String(b),type,weight:0,meetings:0,at:Date.now()});l.type=type;l.weight=CLAMP(l.weight+weight);l.meetings++;l.at=Date.now();return l;}
+ factionFor(node){const district=node?.district||this.game.state.get().world?.district;return Object.values(this.state.factions).find(f=>f.district===district)||null;}
+ joinFaction(id,name){const f=this.state.factions[name];if(!f)return false;const n=this.ensureNode(id);if(n.faction&&this.state.factions[n.faction])this.leaveFaction(id,n.faction);n.faction=name;if(!f.members.includes(n.id))f.members.push(n.id);f.trust=CLAMP(f.trust+.025);this.link(n.id,name,'crew',.08);this.game.events.emit('npc:faction-joined',{npcId:n.id,faction:name});this.sync();return true;}
+ leaveFaction(id,name){const f=this.state.factions[name];const n=this.ensureNode(id);if(!f)return false;f.members=f.members.filter(x=>x!==n.id);if(n.faction===name)n.faction=null;f.cohesion=CLAMP(f.cohesion-.03);this.game.events.emit('npc:faction-left',{npcId:n.id,faction:name});this.sync();return true;}
+ memorySignal(e={}){const n=this.ensureNode(e.npcId);n.activity++;n.trust=CLAMP(Number(e.trust||0)/100);const faction=this.state.factions[n.faction];if(faction){faction.trust=CLAMP(faction.trust+(Number(e.trust||0)>0?.015:-.01));if(Number(e.reputation||0)<-20)faction.heat=CLAMP(faction.heat+.03);}if(!n.faction&&Number(e.reputation||0)>8){const f=this.factionFor({district:e.district});if(f)this.joinFaction(n.id,f.name);}this.sync();}
+ interaction(e={}){const a=this.ensureNode(e.a),b=this.ensureNode(e.b);const type=e.type==='rivalry'?'rival':e.type==='help'||e.type==='cooperation'?'friend':'contact';this.link(a.id,b.id,type,e.type==='rivalry'?.12:.07);if(type==='rival'){a.trust=CLAMP(a.trust-.03);b.trust=CLAMP(b.trust-.03);}else{a.trust=CLAMP(a.trust+.015);b.trust=CLAMP(b.trust+.015);}this.state.events.push({type:'interaction',a:a.id,b:b.id,relation:type,at:Date.now()});this.trim();this.sync();}
+ decision(e={}){const n=this.ensureNode(e.npcId);n.activity++;if(e.action==='seek-group'&&!n.faction){const f=this.factionFor({district:e.district});if(f)this.joinFaction(n.id,f.name);}if(e.action==='avoid-risk')n.trust=CLAMP(n.trust-.01);}
+ reputationSignal(e={}){this.state.network.reputation=e;}
+ consequence(e={}){const district=e.district;for(const f of Object.values(this.state.factions))if(f.district===district)f.heat=CLAMP(f.heat+Number(e.heat||0)*.12);this.sync();}
+ businessSignal(){for(const f of Object.values(this.state.factions))if(f.type==='business')f.opportunities++;this.sync();}
+ opportunity(e={}){const district=e.district||this.game.state.get().world?.district;for(const f of Object.values(this.state.factions))if(f.district===district)f.opportunities++;this.sync();}
+ trim(){this.state.events=this.state.events.slice(-64);}
+ factionProfile(name){const f=this.state.factions[name];if(!f)return null;return{...f,members:[...f.members]};}
+ relationship(a,b){const key=[String(a),String(b)].sort().join(':');return this.state.links[key]||null;}
+ update(dt){this.tick+=dt;if(this.tick<3)return;const step=this.tick;this.tick=0;const links=Object.values(this.state.links),nodes=Object.values(this.state.nodes),factions=Object.values(this.state.factions);for(const l of links)l.weight*=Math.pow(.995,step);for(const f of factions){f.cohesion=CLAMP(f.cohesion+(f.members.length?0.002:-.004)*step);f.heat*=Math.pow(.9,step);f.trust*=Math.pow(.995,step);}const activeLinks=links.filter(l=>l.weight>.05).length;this.state.network={density:nodes.length?activeLinks/Math.max(1,nodes.length*2):0,cohesion:factions.length?factions.reduce((a,f)=>a+f.cohesion,0)/factions.length:0,influence:factions.length?factions.reduce((a,f)=>a+f.influence,0)/factions.length:0};this.state.updatedAt=Date.now();this.trim();this.sync();this.game.events.emit('npc:relationship-network',{nodes:nodes.length,links:activeLinks,factions:factions.length,...this.state.network});this.dynamics.update(dt);}
+ sync(){this.game.state.update({npcRelationshipWeb:this.state});}
 }
