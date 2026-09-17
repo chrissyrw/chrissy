@@ -1,5 +1,6 @@
 import { WorldDirector } from './WorldDirector.js';
 import { ActivityDirector } from './ActivityDirector.js';
+import { ProgressionSystem } from '../player/ProgressionSystem.js';
 
 export class AIDirector {
   constructor(game) {
@@ -8,6 +9,7 @@ export class AIDirector {
     this.phase = 'calm';
     this.worldDirector = new WorldDirector(game);
     this.activityDirector = new ActivityDirector(game);
+    this.progression = new ProgressionSystem(game);
   }
 
   update(dt) {
