@@ -32,9 +32,9 @@ export class NPCMemoryReputationSystem{
     this.game.events.on('npc:social-decision',e=>this.touch(e.npcId,e.district));
     this.game.events.on('relationships:changed',e=>this.relationshipSignal(e));
   }
-  playerId(e={}){return String(e.npcId||e.playerId||e.callsign||e.id||e.name||'city');}
+  playerId(e={}){return String(e.npcId||e.actorId||e.contactId||e.characterId||e.callsign||'');}
   remember(id,type,district,data={}){
-    if(!MEMORY_TYPES.includes(type))return;
+    if(!id||!MEMORY_TYPES.includes(type))return;
     const n=this.state.npcs[id]||(this.state.npcs[id]={id,trust:0,reputation:0,memories:[],visits:0,lastSeen:0,flags:{}});
     const delta={met:2,helped:10,harmed:-12,traded:5,rescued:14,betrayed:-18,shared:4}[type]||0;
     n.trust=CLAMP(n.trust+delta*.35);n.reputation=CLAMP(n.reputation+delta);
@@ -49,7 +49,7 @@ export class NPCMemoryReputationSystem{
     this.game.events.emit('npc:memory-recorded',{npcId:id,type,district:this.alias(district),trust:n.trust,reputation:n.reputation});
   }
   playerEvent(kind,e={}){
-    const id=this.playerId(e);if(id==='city')return;
+    const id=this.playerId(e);if(!id)return;
     this.remember(id,EVENT_MAP[kind]||kind,e.district||this.game.state.get().world?.district,{note:e.name||e.type||kind});
   }
   npcInteraction(e={}){
