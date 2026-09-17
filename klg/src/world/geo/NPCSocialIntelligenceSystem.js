@@ -1,3 +1,5 @@
+import { NPCMemoryReputationSystem } from './NPCMemoryReputationSystem.js';
+
 const CLAMP=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const DISTRICT_ALIASES={CBD:'KigaliCBD',NYAMIRAMBO:'Nyamirambo',KIMIRONKO:'Kimironko',REMERA:'Remera',KACYIRU:'Kacyiru',NYARUTARAMA:'Nyarutarama',KICUKIRO:'Kicukiro',KANOMBE:'Kanombe'};
 const TRAITS=['friendly','ambitious','cautious','social','independent','opportunist'];
@@ -8,6 +10,7 @@ export class NPCSocialIntelligenceSystem{
     this.game=game;this.tick=0;this.nextId=1;
     const saved=game.state.get().npcSocialIntelligence||{};
     this.state=saved.npcs?{...saved}:this.empty();
+    this.memoryReputation=new NPCMemoryReputationSystem(game);
     this.bind();this.sync();
   }
   empty(){return{npcs:{},relationships:{},districts:{},activeSignals:[],socialEvents:0,updatedAt:0};}
@@ -44,29 +47,32 @@ export class NPCSocialIntelligenceSystem{
   playerSignal(e={}){const latest=e.recent?.[0];if(!latest)return;this.emitSignal('memory',latest.district,{trust:Number(latest.trust||0)});}
   updateNPC(n,delta={},reason='world'){
     if(!n)return;const s=this.ensure(n),d=this.district(n.district);for(const k of NEEDS)if(delta[k])s.needs[k]=CLAMP(s.needs[k]+delta[k]);
+    const memoryTrust=this.memoryReputation.trust(s.id)/100;
     const pressure=(s.needs.money+s.needs.food+s.needs.safety+s.needs.belonging+s.needs.purpose)/5;
-    s.stress=CLAMP(s.stress+(pressure-.35)*.16-d.trust*.03);s.trust=CLAMP(s.trust+(d.trust-.35)*.04-s.stress*.015);
+    s.stress=CLAMP(s.stress+(pressure-.35)*.16-d.trust*.03-memoryTrust*.02);s.trust=CLAMP(s.trust+(d.trust-.35)*.04-s.stress*.015+memoryTrust*.01);
     if(s.stress>.68)s.mood='stressed';else if(d.tension>.62)s.mood='alert';else if(s.trust>.65)s.mood='confident';else s.mood='calm';
     s.lastDecision=Date.now();
-    if(Math.random()<.12)this.game.events.emit('npc:social-decision',{npcId:s.id,trait:s.trait,mood:s.mood,reason,needs:{...s.needs},district:this.alias(n.district)});
+    if(Math.random()<.12)this.game.events.emit('npc:social-decision',{npcId:s.id,trait:s.trait,mood:s.mood,reason,needs:{...s.needs},district:this.alias(n.district),reputation:this.memoryReputation.reputation(s.id)});
   }
   decide(n){
-    const s=this.ensure(n),d=this.district(n.district),need=Object.entries(s.needs).sort((a,b)=>b[1]-a[1])[0][0];
+    const s=this.ensure(n),d=this.district(n.district),reputation=this.memoryReputation.reputation(s.id),need=Object.entries(s.needs).sort((a,b)=>b[1]-a[1])[0][0];
     let action='work';
     if(need==='safety'||d.tension>.7)action='avoid-risk';
     else if(need==='belonging'&&['social','friendly'].includes(s.trait))action='seek-group';
     else if(need==='money'||need==='purpose')action=s.trait==='opportunist'?'seek-opportunity':'work';
     else if(need==='food')action='shop';
+    if(reputation>25&&need==='purpose')action='lead-group';
+    if(reputation<-25)action='avoid-player-network';
     if(s.trait==='independent'&&d.tension<.4)action=need==='money'?'work':'explore';
     s.lastDecision=Date.now();
-    this.game.events.emit('npc:social-decision',{npcId:s.id,trait:s.trait,mood:s.mood,action,need,district:this.alias(n.district)});
+    this.game.events.emit('npc:social-decision',{npcId:s.id,trait:s.trait,mood:s.mood,action,need,reputation,district:this.alias(n.district)});
     return action;
   }
   interact(npcA,npcB,type='encounter'){
     const a=this.ensure(npcA),b=this.ensure(npcB),key=[a.id,b.id].sort().join(':');
     const rel=this.state.relationships[key]||(this.state.relationships[key]={a:a.id,b:b.id,trust:.2,cooperation:0,rivalry:0,meetings:0});
     rel.meetings++;if(type==='help'||type==='cooperation')rel.trust=CLAMP(rel.trust+.08);if(type==='rivalry')rel.rivalry=CLAMP(rel.rivalry+.12);else rel.cooperation=CLAMP(rel.cooperation+.04);
-    this.state.socialEvents++;this.game.events.emit('npc:social-interaction',{a:a.id,b:b.id,type,trust:rel.trust,cooperation:rel.cooperation,rivalry:rel.rivalry});
+    this.state.socialEvents++;this.game.events.emit('npc:social-interaction',{a:a.id,b:b.id,type,trust:rel.trust,cooperation:rel.cooperation,rivalry:rel.rivalry,district:this.alias(a.district||b.district)});
   }
   emitSignal(type,district,data={}){this.state.activeSignals.push({id:this.nextId++,type,district:this.alias(district),at:Date.now(),...data});this.state.activeSignals=this.state.activeSignals.slice(-24);}
   update(dt){
@@ -74,7 +80,8 @@ export class NPCSocialIntelligenceSystem{
     const npcs=this.game.npcs?.npcs||[];let social=0,stressed=0;
     for(const n of npcs){if(!n.active)continue;const s=this.ensure(n);this.updateNPC(n,{safety:this.district(n.district).tension*.03,belonging:(s.trait==='social'?.015:0)},'routine');if(Date.now()-s.lastDecision>5000)this.decide(n);if(s.stress>.6)stressed++;if(s.trait==='social'&&s.mood!=='stressed')social++;this.district(n.district).visits++;}
     for(const d of Object.values(this.state.districts)){d.tension*=Math.pow(.9,step);d.mood=.5+d.trust*.35-d.tension*.3;}
-    this.state.activeSignals=this.state.activeSignals.filter(e=>Date.now()-e.at<30000);this.state.updatedAt=Date.now();this.state.metrics={active:npcs.filter(n=>n.active).length,social,stressed,relationships:Object.keys(this.state.relationships).length};this.sync();
+    this.state.activeSignals=this.state.activeSignals.filter(e=>Date.now()-e.at<30000);this.state.updatedAt=Date.now();this.state.metrics={active:npcs.filter(n=>n.active).length,social,stressed,relationships:Object.keys(this.state.relationships).length,reputationTracked:Object.keys(this.memoryReputation.state.npcs).length};this.sync();
+    this.memoryReputation.update(step);
     if(social>0)this.game.events.emit('npc:social-network',{...this.state.metrics});
   }
   sync(){this.game.state.update({npcSocialIntelligence:this.state});}
