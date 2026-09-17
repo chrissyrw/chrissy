@@ -1,0 +1,5 @@
+export class TrafficAI {
+  constructor(game){this.game=game;this.lights=[{x:0,z:0,phase:0},{x:45,z:0,phase:2.4},{x:-45,z:0,phase:1.2},{x:0,z:45,phase:3.1}];this.cycle=0;}
+  isRed(car){const near=this.lights.find(l=>Math.hypot(car.mesh.position.x-l.x,car.mesh.position.z-l.z)<9);if(!near)return false;return ((this.cycle+near.phase)%12)>6;}
+  update(dt){this.cycle=(this.cycle+dt)%12;for(const car of this.game.traffic.cars){const red=this.isRed(car);const desired=red?0:car.baseSpeed;if(!car.baseSpeed)car.baseSpeed=car.speed;car.speed+=(desired-car.speed)*Math.min(1,dt*3);if(Math.abs(car.mesh.position.x)>112||Math.abs(car.mesh.position.z)>112){car.mesh.position.x=Math.max(-108,Math.min(108,car.mesh.position.x));car.mesh.position.z=Math.max(-108,Math.min(108,car.mesh.position.z));}}}
+}
