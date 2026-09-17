@@ -1,0 +1,10 @@
+import * as THREE from 'three';
+const TYPE={residential:{height:[4,11],width:[2.8,6.5],depth:[2.8,7]},commercial:{height:[7,18],width:[3.5,9],depth:[3.5,9]},retail:{height:[3.5,8],width:[3,7],depth:[3,8]},civic:{height:[8,22],width:[5,12],depth:[5,12]},landmark:{height:[12,30],width:[5,14],depth:[5,14]}};
+export class ProceduralCityGenerator{
+ constructor(game){this.game=game;this.group=new THREE.Group();game.scene.add(this.group);this.materials={};}
+ classify(tags={}){if(tags.tourism)return'landmark';if(['school','hospital','townhall','police'].includes(tags.amenity))return'civic';if(tags.shop)return'retail';if(tags.building==='commercial'||tags.building==='office')return'commercial';return'residential';}
+ seed(id){let x=Math.abs(Number(id)||1);x=(x*9301+49297)%233280;return x/233280;}
+ makeBuilding(b,project){const type=this.classify(b.tags),cfg=TYPE[type],r=this.seed(b.id),r2=this.seed(Number(b.id)+77);const floors=Math.max(1,Math.round(cfg.height[0]+(cfg.height[1]-cfg.height[0])*r));const h=Math.min(cfg.height[1],floors*2.7),w=cfg.width[0]+(cfg.width[1]-cfg.width[0])*r2,d=cfg.depth[0]+(cfg.depth[1]-cfg.depth[0])*(1-r);const p=project(b.lon,b.lat),mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),this.material(type));mesh.position.set(p.x,h/2,p.z);mesh.userData={geoId:b.id,buildingType:type,floors,tags:b.tags};mesh.castShadow=true;mesh.receiveShadow=true;return mesh;}
+ material(type){if(this.materials[type])return this.materials[type];const colors={residential:0xb9a78f,commercial:0x8f9fa8,retail:0xc8b06a,civic:0x8799a5,landmark:0x9b8068};return this.materials[type]=new THREE.MeshStandardMaterial({color:colors[type],roughness:.82,metalness:type==='commercial'?.12:0});}
+ generate(buildings,project,limit=12000){this.group.clear();for(const b of buildings.slice(0,limit))this.group.add(this.makeBuilding(b,project));return this.group.children.length;}
+}
