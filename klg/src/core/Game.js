@@ -8,6 +8,7 @@ import { PlayerController } from '../player/PlayerController.js';
 import { PlayerStats } from '../player/PlayerStats.js';
 import { PlayerIdentitySystem } from '../player/PlayerIdentitySystem.js';
 import { PlayerPresenceSystem } from '../social/PlayerPresenceSystem.js';
+import { PlayerMemoryNetwork } from '../social/PlayerMemoryNetwork.js';
 import { VehicleSystem } from '../vehicles/VehicleSystem.js';
 import { VehicleOwnershipSystem } from '../vehicles/VehicleOwnershipSystem.js';
 import { VehiclePhysicsSystem } from '../vehicles/VehiclePhysicsSystem.js';
@@ -84,6 +85,7 @@ export class Game {
     this.districtMemory=new DistrictMemorySystem(this);
     this.identity=new PlayerIdentitySystem(this);
     this.presence=new PlayerPresenceSystem(this);
+    this.memory=new PlayerMemoryNetwork(this);
     this.environment=new EnvironmentSystem(this);
     this.police=new PoliceSystem(this);
     this.wanted=new WantedSystem(this);
@@ -106,11 +108,12 @@ export class Game {
     this.events.on('camera:changed',d=>{const e=document.querySelector('#camera-mode');if(e)e.textContent='CAM: '+d.mode;});
     this.events.on('world:consequence',d=>{const e=document.querySelector('#consequence');if(e)e.textContent=`CITY REACTS: +RWF ${Math.floor(d.reward||0)} · REP +${d.rep||0}`;});
     this.events.on('social:encounter',d=>{const e=document.querySelector('#social');if(e)e.textContent=`MET: ${d.callsign} · TRUST ${Math.round(d.trust)}`;});
+    this.events.on('social:memory-updated',d=>{const e=document.querySelector('#social');const m=d?.recent?.[0];if(e&&m)e.textContent=`MEMORY: ${m.note} · ${m.name} · ${m.district}`;});
   }
   setupLighting(){this.scene.background=new THREE.Color(0x8bb7d8);this.scene.fog=new THREE.Fog(0x8bb7d8,55,260);this.scene.add(new THREE.HemisphereLight(0xffffff,0x45604b,2.0));this.sun=new THREE.DirectionalLight(0xffffff,2.8);this.sun.position.set(35,55,20);this.sun.castShadow=true;this.sun.shadow.mapSize.set(2048,2048);this.sun.shadow.camera.near=1;this.sun.shadow.camera.far=300;this.scene.add(this.sun);}
   setupPlayer(){this.player=new THREE.Mesh(new THREE.CapsuleGeometry(.65,1.2,6,12),new THREE.MeshStandardMaterial({color:0x1d2630,roughness:.7}));const s=this.state.get().player.position;this.player.position.set(s.x,s.y,s.z);this.player.castShadow=true;this.scene.add(this.player);this.controller=new PlayerController(this.player,this.state,this.events);}
   update(dt){
-    this.runtime.update(dt);this.controller.update(dt);this.vehicles.update(dt);this.vehicleOwnership.update(dt);this.vehiclePhysics.update(dt);this.vehicleEffects.update(dt);this.cameraSystem.update(dt);this.customization.update(dt);this.garageUI.update();this.traffic.update(dt);this.trafficAI.update(dt);this.weather.update(dt);this.npcs.update(dt);this.populationAI.update(dt);this.missions.update(dt);this.ai.update(dt);this.world.update(dt);this.cityLife.update(dt);this.worldPressure.update(dt);this.opportunities.update(dt);this.consequences.update(dt);this.relationships.update(dt);this.districtMemory.update(dt);this.identity.update(dt);this.presence.update(dt);this.environment.update(dt);this.police.update(dt);this.wanted.update(dt);this.nav.update();this.economy.update(dt);this.economyDirector.update(dt);this.businessMarket.update(dt);this.garage.update(dt);this.worldState.refresh();
+    this.runtime.update(dt);this.controller.update(dt);this.vehicles.update(dt);this.vehicleOwnership.update(dt);this.vehiclePhysics.update(dt);this.vehicleEffects.update(dt);this.cameraSystem.update(dt);this.customization.update(dt);this.garageUI.update();this.traffic.update(dt);this.trafficAI.update(dt);this.weather.update(dt);this.npcs.update(dt);this.populationAI.update(dt);this.missions.update(dt);this.ai.update(dt);this.world.update(dt);this.cityLife.update(dt);this.worldPressure.update(dt);this.opportunities.update(dt);this.consequences.update(dt);this.relationships.update(dt);this.districtMemory.update(dt);this.identity.update(dt);this.presence.update(dt);this.memory.update(dt);this.environment.update(dt);this.police.update(dt);this.wanted.update(dt);this.nav.update();this.economy.update(dt);this.economyDirector.update(dt);this.businessMarket.update(dt);this.garage.update(dt);this.worldState.refresh();
     const target=this.vehicles.active?this.vehicles.active.mesh:this.player;this.sun.position.x=target.position.x+35;this.sun.position.z=target.position.z+20;
   }
   start(){this.runtime.start();const loop=()=>{requestAnimationFrame(loop);this.update(Math.min(this.clock.getDelta(),.05));this.renderer.render(this.scene,this.camera);};loop();}
