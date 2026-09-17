@@ -10,6 +10,7 @@ export class EconomySystem {
     this.cooldown=0;
   }
   getShop(name){return this.shops[name]||null;}
+  rewardScale(){return this.game.state.get().economy?.rewardScale||1;}
   interact(name){
     const shop=this.getShop(name); if(!shop)return false;
     const s=this.game.state.get();
@@ -23,5 +24,6 @@ export class EconomySystem {
     }
     return false;
   }
+  missionReward(base){return Math.round(base*this.rewardScale());}
   update(dt){this.cooldown=Math.max(0,this.cooldown-dt);}
 }
