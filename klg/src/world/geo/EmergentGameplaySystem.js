@@ -31,11 +31,11 @@ export class EmergentGameplaySystem{
     this.sync();return chain;
   }
   compose(type,context){
-    const common=[{id:'discover',kind:'discover',status:'open'},{id:'choose',kind:'choice',status:'locked'},{id:'consequence',kind:'consequence',status:'locked'}];
+    const common=[{id:'discover',kind:'discover',status:'open'},{id:'choose',kind:'choice',status:'open'},{id:'consequence',kind:'consequence',status:'locked'}];
     if(type==='logistics')return[
       {id:'signal',kind:'opportunity',status:'open',action:'inspect-cargo'},
       {id:'route',kind:'objective',status:'locked',action:'deliver'},
-      {id:'choice',kind:'choice',status:'locked',options:['deliver','reroute','abandon']},
+      {id:'choice',kind:'choice',status:'open',options:['deliver','reroute','abandon']},
       {id:'consequence',kind:'consequence',status:'locked'}
     ];
     if(type==='faction')return[
