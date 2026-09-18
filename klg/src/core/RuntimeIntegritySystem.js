@@ -35,6 +35,7 @@ export class RuntimeIntegritySystem {
     return {
       coreRuntime: !!g.runtime && !!g.events && !!g.state,
       unifiedFabric: !!g.unifiedFabric && fabric?.healthy !== false,
+      modern3DRender: !!g.renderer && !!g.render3D && typeof g.render3D.snapshot === 'function',
       stateContinuity: Number(g.state.revision || 0) >= this.lastRevision,
       worldBrain: !!g.unifiedWorldBrainSystem,
       worldSimulation: !!g.districtSimulationCoreSystem && !!g.worldSimulationSchedulerSystem,
