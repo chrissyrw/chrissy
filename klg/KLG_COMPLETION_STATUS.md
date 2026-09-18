@@ -69,3 +69,13 @@ The next hardening pass adds runtime evidence rather than a documentation-only c
 - Presentation is generated from the same geo building dataset, keeping visual placement aligned with the streamed Kigali world.
 - Runtime integrity now audits both the modern renderer and city presentation readiness.
 - This remains a presentation foundation; final authored assets, materials, interiors, animation, audio, and platform-specific optimization are still separate production work.
+
+
+## Development implementation — Advanced street-level 3D layer
+- Added a dedicated street-level presentation layer driven by the existing Rwanda Spatial Agency road geometry.
+- Added road surfaces with class-aware widths, raised sidewalks, curbs, lane markings, zebra-crossing treatment, street lamps, bollards, and traffic-readable roadside furniture.
+- Added bounded security-camera props across the road network to support a modern monitored-city visual language.
+- Expanded the camera controller with chase/close/hood/cockpit/cinematic plus drone, top-down, low-street, roof, and orbit views.
+- Added keyboard camera access: C cycles modes; 1–9 and 0 select direct views.
+- Runtime integrity now audits street-level presentation readiness alongside the modern renderer and city presentation.
+- This is a procedural street presentation foundation; authored road meshes, bespoke props, animation, traffic-light state machines, high-detail surveillance rigs, and platform-specific optimization remain separate production layers.
