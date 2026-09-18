@@ -60,3 +60,12 @@ The next hardening pass adds runtime evidence rather than a documentation-only c
 - Upgraded outdoor lighting with directional sun, fill/rim lights, wider shadow coverage, shadow bias, and exponential atmospheric fog.
 - Wired render quality state into the runtime and added a runtime-integrity contract for the 3D renderer.
 - This is a rendering foundation upgrade; it is not a claim of final AAA asset quality or a completed 99.9% product verification.
+
+
+## Development implementation — Real 3D city presentation layer
+- Added `CityPresentationSystem` on top of the existing Kigali geo/building pipeline.
+- Added large-scale ground treatment, deterministic procedural vegetation, and lightweight facade accents.
+- Vegetation uses GPU-friendly instancing to keep object count bounded while adding city texture.
+- Presentation is generated from the same geo building dataset, keeping visual placement aligned with the streamed Kigali world.
+- Runtime integrity now audits both the modern renderer and city presentation readiness.
+- This remains a presentation foundation; final authored assets, materials, interiors, animation, audio, and platform-specific optimization are still separate production work.
