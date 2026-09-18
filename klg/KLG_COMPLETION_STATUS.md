@@ -51,3 +51,12 @@ The next hardening pass adds runtime evidence rather than a documentation-only c
 - Completion scoring now consumes runtime-integrity evidence and supports one-decimal precision up to a 99.9% verification ceiling.
 - The integrity system is registered with the runtime lifecycle and emits a high-priority runtime:integrity event.
 - Save loading now happens after the unified fabric is attached, so persistence-load state changes are observable by the runtime fabric.
+
+
+## Development implementation — Modern 3D render foundation
+- Added `Modern3DRenderSystem` as the renderer quality/performance governor.
+- Enabled sRGB output color management and ACES filmic tone mapping for a modern PBR-oriented presentation.
+- Added adaptive pixel-ratio scaling based on smoothed frame time to protect frame rate on weaker GPUs.
+- Upgraded outdoor lighting with directional sun, fill/rim lights, wider shadow coverage, shadow bias, and exponential atmospheric fog.
+- Wired render quality state into the runtime and added a runtime-integrity contract for the 3D renderer.
+- This is a rendering foundation upgrade; it is not a claim of final AAA asset quality or a completed 99.9% product verification.
