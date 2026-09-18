@@ -2,10 +2,12 @@ const CLAMP=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 export class CrewEconomySystem{
  constructor(game){this.game=game;this.state=game.state.get().crewEconomy||{crews:{},updatedAt:0};this.bind();this.sync();}
  bind(){
-  this.game.events.on('crew:formed',e=>this.ensure(e.id,e.district));
-  this.game.events.on('crew:progress',e=>this.ensure(e.id,e.district));
+  this.game.events.on('crew:formed',e=>this.ensure(e.id||e.crewId,e.district));
+  this.game.events.on('crew:progress',e=>this.ensure(e.id||e.crewId,e.district));
   this.game.events.on('crew:safehouse-upgraded',e=>this.invest(e));
   this.game.events.on('mission:crew-resolved',e=>this.resolveMission(e));
+  this.game.events.on('mission:completed',e=>{if(e?.crewMissionId)this.resolveMission({...e,crewId:e.crewId||e.crew?.id||e.crewMission?.crewId,success:true,reward:e.reward});});
+  this.game.events.on('mission:failed',e=>{if(e?.crewMissionId)this.resolveMission({...e,crewId:e.crewId||e.crew?.id||e.crewMission?.crewId,success:false,reward:0});});
   this.game.events.on('faction:economic-order-resolved',e=>this.factionTrade(e));
  }
  ensure(id,district='KigaliCBD'){
