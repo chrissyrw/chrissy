@@ -1,10 +1,10 @@
-const clamp=(n,a=0,b=100)=>Math.max(a,Math.min(b,n));
+const clamp=(n,a=0,b=99.9)=>Math.max(a,Math.min(b,n));
 export class KLGCompletionScoreSystem{
- constructor(game){this.game=game;this.tick=0;this.categories={coreRuntime:{weight:1,base:100},worldSimulation:{weight:1.2,base:94},gameplayLoop:{weight:1.4,base:93},missions:{weight:1.3,base:92},opportunities:{weight:1.1,base:92},socialCrew:{weight:1.1,base:94},economy:{weight:1,base:92},persistence:{weight:1,base:91},ux:{weight:.8,base:86},productionReadiness:{weight:.8,base:72}};}
+ constructor(game){this.game=game;this.tick=0;this.categories={coreRuntime:{weight:1.1,base:100},worldSimulation:{weight:1.2,base:94},gameplayLoop:{weight:1.4,base:93},missions:{weight:1.3,base:92},opportunities:{weight:1.1,base:92},socialCrew:{weight:1.1,base:94},economy:{weight:1,base:92},persistence:{weight:1,base:91},ux:{weight:.8,base:86},productionReadiness:{weight:.8,base:72},runtimeIntegrity:{weight:1.4,base:0}};}
  telemetry(){return this.game.state.get().gameplayTelemetry?.counts||{};}
  audit(){return Number(this.game.state.get().completionAudit?.score||0);}
  score(){
-  const t=this.telemetry(),audit=this.audit(),cats={};
+  const t=this.telemetry(),audit=this.audit(),integrity=this.game.state.get().runtimeIntegrity?.score||0,cats={};
   for(const [name,c] of Object.entries(this.categories)){let v=c.base;
    if(name==='missions'&&(t.missionCompleted+t.missionFailed)>0)v+=4;
    if(name==='opportunities'&&t.opportunityAccepted>0)v+=4;
@@ -14,9 +14,10 @@ export class KLGCompletionScoreSystem{
    if(name==='productionReadiness'){const p=this.game.state.get().productionReadiness?.score||0;v+=Math.min(8,Math.round(p/10));}
    if(name==='persistence'&&audit>=80)v+=3;
    if(name==='gameplayLoop')v+=Math.min(3,Math.round((t.missionStarted+t.opportunityGenerated+t.opportunityDiscovered)/6));
-   cats[name]=clamp(Math.round(v));}
+   if(name==='runtimeIntegrity')v=integrity;
+   cats[name]=clamp(Math.round(v*10)/10);}
   const total=Object.entries(cats).reduce((s,[k,v])=>s+v*this.categories[k].weight,0),weights=Object.values(this.categories).reduce((s,c)=>s+c.weight,0);
-  return {categories:cats,overallPercent:Math.round(total/weights),auditPercent:audit,telemetry:t,updatedAt:Date.now()};
+  return {categories:cats,overallPercent:Math.round((total/weights)*10)/10,auditPercent:audit,telemetry:t,runtimeIntegrity:integrity,updatedAt:Date.now()};
  }
- update(dt=.016){this.tick+=dt;if(this.tick<2)return;this.tick=0;const report=this.score();report.gate=report.overallPercent>=95?'beta':report.overallPercent>=85?'alpha':report.overallPercent>=70?'vertical-slice':report.overallPercent>=50?'playable-core':'prototype';this.game.state.update({klgCompletion:report});this.game.events.emit('klg:completion-progress',report);}
+ update(dt=.016){this.tick+=dt;if(this.tick<2)return;this.tick=0;const report=this.score();report.gate=report.overallPercent>=99.9?'verification-ceiling':report.overallPercent>=95?'beta':report.overallPercent>=85?'alpha':report.overallPercent>=70?'vertical-slice':report.overallPercent>=50?'playable-core':'prototype';this.game.state.update({klgCompletion:report});this.game.events.emit('klg:completion-progress',report);}
 }

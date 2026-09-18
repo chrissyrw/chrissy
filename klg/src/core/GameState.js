@@ -11,17 +11,17 @@ const DEFAULT_STATE = {
 };
 function clone(value){return JSON.parse(JSON.stringify(value));}
 export class GameState {
-  constructor(){this.state=clone(DEFAULT_STATE);this.listeners=new Set();}
+  constructor(){this.state=clone(DEFAULT_STATE);this.listeners=new Set();this.revision=0;this.lastChange=null;}
   get(){return this.state;}
-  reset(){this.state=clone(DEFAULT_STATE);this.emit();}
-  update(path,value){
+  reset(source='system'){this.state=clone(DEFAULT_STATE);this.emit(source);}
+  update(path,value,source='gameplay'){
     if(typeof path==='object'){
-      this.state={...this.state,...path,world:{...this.state.world,...(path.world||{})},player:{...this.state.player,...(path.player||{})},ai:{...this.state.ai,...(path.ai||{})},economy:{...this.state.economy,...(path.economy||{})},garage:{...this.state.garage,...(path.garage||{})},security:{...this.state.security,...(path.security||{})},navigation:{...this.state.navigation,...(path.navigation||{})},vehicle:{...this.state.vehicle,...(path.vehicle||{})}};this.emit();return;
+      this.state={...this.state,...path,world:{...this.state.world,...(path.world||{})},player:{...this.state.player,...(path.player||{})},ai:{...this.state.ai,...(path.ai||{})},economy:{...this.state.economy,...(path.economy||{})},garage:{...this.state.garage,...(path.garage||{})},security:{...this.state.security,...(path.security||{})},navigation:{...this.state.navigation,...(path.navigation||{})},vehicle:{...this.state.vehicle,...(path.vehicle||{})}};this.emit(source);return;
     }
-    const parts=path.split('.');let target=this.state;for(let i=0;i<parts.length-1;i++)target=target[parts[i]];target[parts.at(-1)]=value;this.emit();
+    const parts=path.split('.');let target=this.state;for(let i=0;i<parts.length-1;i++)target=target[parts[i]];target[parts.at(-1)]=value;this.emit(source);
   }
   save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(this.state));return true;}
-  load(){const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return false;try{const saved=JSON.parse(raw);this.state={...clone(DEFAULT_STATE),...saved,world:{...DEFAULT_STATE.world,...(saved.world||{})},player:{...DEFAULT_STATE.player,...(saved.player||{})},ai:{...DEFAULT_STATE.ai,...(saved.ai||{})},economy:{...DEFAULT_STATE.economy,...(saved.economy||{})},garage:{...DEFAULT_STATE.garage,...(saved.garage||{})},security:{...DEFAULT_STATE.security,...(saved.security||{})},navigation:{...DEFAULT_STATE.navigation,...(saved.navigation||{})},vehicle:{...DEFAULT_STATE.vehicle,...(saved.vehicle||{})}};this.emit();return true;}catch{return false;}}
+  load(){const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return false;try{const saved=JSON.parse(raw);this.state={...clone(DEFAULT_STATE),...saved,world:{...DEFAULT_STATE.world,...(saved.world||{})},player:{...DEFAULT_STATE.player,...(saved.player||{})},ai:{...DEFAULT_STATE.ai,...(saved.ai||{})},economy:{...DEFAULT_STATE.economy,...(saved.economy||{})},garage:{...DEFAULT_STATE.garage,...(saved.garage||{})},security:{...DEFAULT_STATE.security,...(saved.security||{})},navigation:{...DEFAULT_STATE.navigation,...(saved.navigation||{})},vehicle:{...DEFAULT_STATE.vehicle,...(saved.vehicle||{})}};this.emit('persistence:load');return true;}catch{return false;}}
   subscribe(listener){this.listeners.add(listener);return()=>this.listeners.delete(listener);}
-  emit(){for(const listener of this.listeners)listener(this.state);}
+  emit(source='gameplay'){this.revision++;this.lastChange={revision:this.revision,source,timestamp:Date.now()};for(const listener of this.listeners)listener(this.state,this.lastChange);}
 }
