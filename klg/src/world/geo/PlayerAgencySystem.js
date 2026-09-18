@@ -22,6 +22,7 @@ export class PlayerAgencySystem{
     const saved=game.state.get().playerAgency||{};
     this.state=saved.choices?{...saved}:this.empty();
     this.bind();
+    this.bindInput();
     this.sync();
   }
 
@@ -32,6 +33,21 @@ export class PlayerAgencySystem{
   bind(){
     this.game.events.on('gameplay:chain-created',e=>this.offer(e));
     this.game.events.on('gameplay:chain-resolved',e=>this.learn(e));
+  }
+
+  bindInput(){
+    if(typeof document==='undefined')return;
+    document.addEventListener('keydown',e=>{
+      if(e.repeat)return;
+      const index=Number(e.key)-1;
+      if(index<0||index>2)return;
+      const eg=this.game.emergentGameplay;
+      const id=eg?.state?.active?.[0];
+      const chain=id?eg.state.chains[id]:null;
+      const stage=chain?this.currentChoice(chain):null;
+      const option=stage?.options?.[index];
+      if(option)this.choose(id,option);
+    });
   }
 
   offer(chain){
