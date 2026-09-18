@@ -3,6 +3,7 @@ export class CrewMissionSystem{
  bind(){
   this.game.events.on('crew:support-active',e=>this.generate(e));
   this.game.events.on('crew:formed',e=>this.generate({crewId:e.id,district:e.district,type:'recruit'}));
+  this.game.events.on('gameplay:opportunity-accept',e=>{if((e?.type||e?.mission?.type)==='crew-mission')this.accept(e.id||e.opportunityId||e.missionId);});
   this.game.events.on('mission:completed',e=>this.resolve(e.crewMissionId,true));
   this.game.events.on('mission:failed',e=>this.resolve(e.crewMissionId,false));
  }
