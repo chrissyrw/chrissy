@@ -1,9 +1,10 @@
 const CLAMP=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 export class CrewBusinessNetworkSystem{
  constructor(game){this.game=game;this.state=game.state.get().crewBusinesses||{businesses:[],updatedAt:0};this.bind();this.sync();}
+ findDistrict(id){const t=this.game.state.get().crewTerritory?.districts||{};return Object.entries(t).find(([,v])=>v.crewId===id)?.[0]||'KigaliCBD';}
  bind(){
   this.game.events.on('crew:territory-controlled',e=>this.create(e));
-  this.game.events.on('crew:safehouse-upgraded',e=>this.create({crewId:e.crewId,district:e.district}));
+  this.game.events.on('crew:safehouse-upgraded',e=>this.create({crewId:e.crewId,district:e.district||this.findDistrict(e.crewId)}));
   this.game.events.on('crew:economy-update',e=>this.scale(e));
  }
  create(e={}){
