@@ -54,6 +54,8 @@ export class AIWorldDirector{
     const conflicts=s.factionConflict?.active||[];
     const security=s.security||{};
     const identity=s.identity?.traits||s.identity||{};
+    const memory=s.adaptiveWorldMemory||{};
+    const profile=memory.players?.player||{};
 
     const traffic=CLAMP((Number(economy.traffic||1)-.8)/.8);
     const economic=CLAMP(Math.abs(Number(economy.pricePressure||0))+.35*Math.max(0,Number(economy.demand||1)-Number(economy.supply||1)));
@@ -127,11 +129,11 @@ export class AIWorldDirector{
 
     return targets.map(([action,pressure,district])=>{
       const fit=this.playerFit(action,s);
-      const novelty=1-this.repetitionPenalty(action,district.name);
+      const novelty=1-this.repetitionPenalty(action,district.name);\n      const memory=this.game.state.get().adaptiveWorldMemory?.districts?.[district.name]||{};\n      const memoryBias=CLAMP(Number(memory.trust||0)*.12-Number(memory.pressure||0)*.08);
       const cooldown=this.cooldownPenalty(action);
-      const consequence=CLAMP(pressure*.65+fit*.2+novelty*.15);
+      const consequence=CLAMP(pressure*.65+fit*.2+novelty*.15+memoryBias);
       const score=Math.max(0,pressure)*ACTIONS[action].weight*(.55+.45*fit)*novelty*(1-cooldown)*(.65+.35*consequence);
-      return{action,district:district.name,pressure:CLAMP(pressure),fit,novelty,cooldown,consequence,score};
+      return{action,district:district.name,pressure:CLAMP(pressure),fit,novelty,cooldown,consequence,memoryBias,score};
     }).filter(x=>x.score>.12).sort((a,b)=>b.score-a.score);
   }
 
@@ -161,7 +163,7 @@ export class AIWorldDirector{
   apply(d){
     const now=Date.now();
     this.lastDecisions[d.action]=now;
-    const payload={action:d.action,district:d.district,score:d.score,pressure:d.pressure,fit:d.fit,consequence:d.consequence,at:now};
+    const payload={action:d.action,district:d.district,score:d.score,pressure:d.pressure,fit:d.fit,consequence:d.consequence,memoryBias:d.memoryBias||0,key:d.action+':'+d.district,at:now};
 
     if(d.action==='seed-opportunity'){
       const reward=Math.round(220+420*d.pressure+180*d.fit);
