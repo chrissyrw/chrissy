@@ -1,5 +1,3 @@
-import * as THREE from 'three';
-
 const CLAMP=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const ROUTES=[['Kimironko','Remera',1.15],['Remera','Kacyiru',.9],['Kacyiru','Kimihurura',.8],['Kimihurura','KigaliCBD',1.05],['KigaliCBD','Nyamirambo',1.1],['Nyamirambo','Kimironko',.95],['KigaliCBD','Remera',1.2],['Kacyiru','Kimironko',.85],['Kimihurura','Remera',.9]];
 const CARGO={food:{weight:1,value:80},parts:{weight:2,value:240},textiles:{weight:1.4,value:150},fuel:{weight:1.2,value:110},electronics:{weight:.8,value:360},services:{weight:.3,value:190},vehicles:{weight:8,value:900},recovery:{weight:3,value:280},supplies:{weight:2,value:210},permits:{weight:.2,value:300},delivery:{weight:1,value:130}};
