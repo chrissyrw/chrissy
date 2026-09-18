@@ -24,6 +24,7 @@ export class CityCrisisOrchestratorSystem{
   this.game.events.on('emergency:incident-created',e=>this.signal('emergency',e,1.1));
   this.game.events.on('emergency:city-recovered',e=>this.recoverSignal(e));
   this.game.events.on('player:choice-made',e=>this.onPlayerChoice(e));
+  this.game.events.on('crisis:recurring-threat',e=>this.signal(e.domain||'social',e,1.15));
  }
  signal(domain,e={},weight=1){
   const district=e.district||e.to||e.from||this.game.state.get().world?.district||'KigaliCBD';
