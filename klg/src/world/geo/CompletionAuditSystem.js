@@ -30,6 +30,7 @@ export class CompletionAuditSystem{
    crewMissionResolution:!!c.crewMissionResolved,
    opportunityPipeline:!!(c.opportunitySeen||c.opportunityAccepted),
    missionPipeline:!!(c.missionStarted||c.missionCompleted||c.missionFailed),
+   gameplayCompletion:!!this.game.state.get().gameplayCompletion,
    persistence:!!this.game.state.get().crewEconomy&&!!this.game.state.get().crewMissions
   };
   const passed=Object.values(checks).filter(Boolean).length;
