@@ -40,3 +40,14 @@ Implemented on development branch `develop/klg-unified-state-fabric`:
 - Kept existing direct event emissions backward-compatible.
 
 Completion percentages should be derived from runtime audits rather than documentation targets.
+
+
+## Development implementation — Runtime integrity and fault isolation
+
+The next hardening pass adds runtime evidence rather than a documentation-only completion target:
+
+- EventBus handler failures are isolated, recorded, and observable without stopping the remaining handlers.
+- Runtime integrity audits critical gameplay, AI, persistence, recovery, UX, telemetry, and unified-fabric contracts.
+- Completion scoring now consumes runtime-integrity evidence and supports one-decimal precision up to a 99.9% verification ceiling.
+- The integrity system is registered with the runtime lifecycle and emits a high-priority runtime:integrity event.
+- Save loading now happens after the unified fabric is attached, so persistence-load state changes are observable by the runtime fabric.
