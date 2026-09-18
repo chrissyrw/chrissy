@@ -3,7 +3,7 @@ export class GameplayCompletionSuiteSystem{
  constructor(game){
   this.game=game;this.tick=0;
   this.state=game.state.get().gameplayCompletion||{
-   score:0,status:'in-progress',systems:{},missions:{started:0,completed:0,failed:0},opportunities:{generated:0,accepted:0,completed:0,expired:0},updatedAt:0
+   score:0,status:'in-progress',systems:{},missions:{started:0,completed:0,failed:0},opportunities:{generated:0,discovered:0,accepted:0,completed:0,expired:0},updatedAt:0
   };
   this.activeObjectives=new Map();this.seenOpportunities=new Set();this.acceptedOpportunities=new Set();
   this.bind();this.sync();
@@ -14,6 +14,7 @@ export class GameplayCompletionSuiteSystem{
   this.game.events.on('mission:failed',m=>this.finishMission(m||{},false));
   this.game.events.on('gameplay:opportunity',o=>this.opportunityGenerated(o||{}));
   this.game.events.on('gameplay:opportunity-accept',o=>this.opportunityAccepted(o||{}));
+  this.game.events.on('opportunity:discovered',o=>this.opportunityDiscovered(o||{}));
   this.game.events.on('mission:crew-generated',m=>this.bridgeCrewMission(m||{}));
   this.game.events.on('mission:crew-accepted',m=>this.bridgeCrewMission(m||{}));
   this.game.events.on('crew:territory-controlled',e=>this.system('territory',e));
@@ -48,6 +49,7 @@ export class GameplayCompletionSuiteSystem{
   if(this.seenOpportunities.has(o.id))return;
   this.seenOpportunities.add(o.id);this.state.opportunities.generated++;
  }
+ opportunityDiscovered(o){this.state.opportunities.discovered=(this.state.opportunities.discovered||0)+1;}
  opportunityAccepted(o){
   const id=o.id||o.opportunityId||o.missionId;if(!id||this.acceptedOpportunities.has(id))return;
   this.acceptedOpportunities.add(id);this.state.opportunities.accepted++;
@@ -92,7 +94,7 @@ export class GameplayCompletionSuiteSystem{
   }
   const checks={
    missionObjectives:this.state.missions.completed+this.state.missions.failed>0,
-   opportunityFlow:this.state.opportunities.generated>0,
+   opportunityFlow:this.state.opportunities.generated>0&&this.state.opportunities.discovered>0,
    opportunityAcceptance:this.state.opportunities.accepted>0,
    crewIntegration:!!this.state.systems.crewMission,
    economyIntegration:!!(this.game.state.get().crewEconomy&&this.game.state.get().crewBusinesses),
