@@ -51,7 +51,7 @@ export class PlaceIdentitySystem{
   if(!db)return;
   let named=0,designed=0;
   for(const p of db.pois){p.identity=this.identity(p,p.district||this.game.state.get().world.district||'KigaliCBD');if(p.identity.source==='osm-name')named++;p.design=p.identity.style;designed++;}
-  for(const b of db.buildings){b.identity=this.identity(b,this.game.state.get().world.district||'KigaliCBD');b.design=b.identity.style;}
+  for(const b of db.buildings){b.identity=this.identity(b,this.game.state.get().world.district||'KigaliCBD');b.design=b.identity.style;}\n  const meshes=this.game.geoWorld?.city?.group?.children||[];\n  for(const mesh of meshes){const id=mesh.userData?.geoId;if(id==null)continue;const b=db.buildings.find(x=>String(x.id)===String(id));if(b?.identity){mesh.userData.identity=b.identity;mesh.userData.placeName=b.identity.trueName;mesh.userData.placeCode=b.identity.code;mesh.userData.design=b.identity.style;}}
   this.state.places=db.pois.length+db.buildings.length;this.state.named=named;this.state.designed=designed;this.state.updatedAt=Date.now();this.sync();
   this.game.events.emit('place:identity-ready',{places:this.state.places,named,designed});
  }
