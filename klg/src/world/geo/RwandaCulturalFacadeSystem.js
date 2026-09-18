@@ -9,7 +9,7 @@ const THEMES={
 };
 export class RwandaCulturalFacadeSystem{
  constructor(game){this.game=game;this.group=new THREE.Group();game.scene.add(this.group);this.materials=new Map();this.state=game.state.get().rwandaFacade||{facades:0,murals:0,signs:0,updatedAt:0};this.bind();this.sync();}
- bind(){this.game.events.on('geo:world-loaded',()=>this.decorate());}
+ bind(){this.game.events.on('geo:world-loaded',()=>this.decorate());this.game.events.on('place:identity-ready',()=>this.decorate());}
  theme(identity){const p=identity?.style?.palette||'urban';return THEMES[p]||THEMES.urban;}
  makeSign(name,code,theme){
   const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d');
