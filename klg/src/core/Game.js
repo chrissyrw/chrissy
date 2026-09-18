@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { EventBus } from './EventBus.js';
 import { UnifiedStateEventFabric } from './UnifiedStateEventFabric.js';
 import { RuntimeIntegritySystem } from './RuntimeIntegritySystem.js';
+import { Modern3DRenderSystem } from './Modern3DRenderSystem.js';
 import { GameState } from './GameState.js';
 import { GameRuntime } from './GameRuntime.js';
 import { WorldState } from './WorldState.js';
