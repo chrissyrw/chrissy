@@ -2,7 +2,7 @@ export class CompletionAuditSystem{
  constructor(game){
   this.game=game;
   this.state=game.state.get().completionAudit||{score:0,status:'booting',checks:{},events:0,failures:0,lastFailure:null,updatedAt:0};
-  this.contracts={
+  this.tick=0;this.contracts={
    crewFormed:0, crewProgress:0, crewMissionResolved:0, safehouseUpgrade:0, rivalry:0,
    opportunitySeen:0, opportunityAccepted:0, missionStarted:0, missionCompleted:0, missionFailed:0
   };
@@ -22,7 +22,8 @@ export class CompletionAuditSystem{
   this.game.events.on('mission:failed',e=>{if(e?.id)ok('missionFailed');else this.fail('mission failure missing id');});
  }
  fail(message){this.state.failures++;this.state.lastFailure=message;}
- update(){
+ update(dt=.016){
+  this.tick+=dt;if(this.tick<2)return;this.tick=0;
   const c=this.contracts;
   const checks={
    crewPipeline:!!(c.crewFormed||c.crewProgress),
