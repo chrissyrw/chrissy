@@ -16,6 +16,7 @@ export class EmergencyRescueSystem{
   this.active=null;
   this.history=[];
   this.responders=[];
+  this.dispatchState={roadBlock:0,trafficReroute:0,panic:0,evacuation:0};
   this.state=game.state.get().emergencyRescue||{incidents:0,rescues:0,failed:0,active:null,updatedAt:0};
   this.bind();
  }
@@ -53,6 +54,7 @@ export class EmergencyRescueSystem{
   this.state.incidents++;
   this.createIncidentVisual();
   this.createResponder('service');
+  this.applyIncidentImpact(1);
   this.game.events.emit('emergency:incident-created',{...this.active});
   this.game.events.emit('gameplay:emergency-opportunity',{...this.active,options:['help','report','avoid']});
   this.sync();
@@ -83,6 +85,16 @@ export class EmergencyRescueSystem{
   else if(key==='2')this.resolve('report');
   else if(key==='3')this.resolve('avoid');
  }
+ applyIncidentImpact(scale=1){
+  if(!this.active)return;
+  const i=this.active;const t=this.game.traffic;
+  if(t){t.emergencyIncident={x:i.position.x,z:i.position.z,type:i.type,intensity:i.intensity*scale};}
+  this.dispatchState.roadBlock=C((this.dispatchState.roadBlock||0)+i.intensity*.75*scale);
+  this.dispatchState.traffic=C((this.dispatchState.traffic||0)+i.intensity*.55*scale);
+  this.dispatchState.panic=C((this.dispatchState.panic||0)+i.intensity*.5*scale);
+  this.game.events.emit('emergency:traffic-impact',{district:i.district,type:i.type,position:i.position,intensity:i.intensity,roadBlock:this.dispatchState.roadBlock,panic:this.dispatchState.panic});
+  this.game.events.emit('emergency:npc-impact',{district:i.district,type:i.type,intensity:i.intensity,panic:this.dispatchState.panic,evacuate:i.type==='medical-call'||i.type==='road-crash'});
+ }
  resolve(action){
   if(!this.active)return;
   const i=this.active;
@@ -95,12 +107,15 @@ export class EmergencyRescueSystem{
   }
   i.stage='resolved';i.action=action;i.resolvedAt=Date.now();
   if(action==='help'){
+   this.dispatchState.roadBlock=0;this.dispatchState.panic=Math.max(0,(this.dispatchState.panic||0)-i.intensity*.8);this.dispatchState.evacuation=Math.max(0,(this.dispatchState.evacuation||0)-.4);
    this.state.rescues++;
    this.game.stats.addMoney(i.reward);this.game.stats.addReputation(i.rep);
    this.game.events.emit('world:consequence',{type:'safety',district:i.district,reward:i.reward,rep:i.rep,source:'emergency-rescue'});
    this.game.events.emit('emergency:rescue-complete',{...i});
    this.game.events.emit('npc:social-interaction',{type:'rescue',trust:C(.65+i.rep*.02),district:i.district});
   }else if(action==='report'){
+   this.dispatchState.evacuation=C((this.dispatchState.evacuation||0)+i.intensity*.45);
+   this.game.events.emit('emergency:dispatch',{district:i.district,type:i.type,priority:i.intensity,units:['service','police']});
    this.game.events.emit('police:alert',{level:C(.5+i.intensity*.7,0,1),source:'emergency-report',district:i.district});
    this.game.events.emit('city:response',{district:i.district,type:'safety',response:'secure',strength:i.intensity});
    this.game.events.emit('emergency:reported',{...i});
@@ -112,6 +127,7 @@ export class EmergencyRescueSystem{
   this.history.push({...i});this.history=this.history.slice(-20);
   if(i.mesh){this.game.scene.remove(i.mesh);i.mesh.traverse(o=>o.geometry?.dispose?.());}
   this.responders.forEach(r=>this.game.scene.remove(r.mesh));this.responders=[];
+  if(this.game.traffic?.emergencyIncident)this.game.traffic.emergencyIncident=null;
   this.active=null;this.cooldown=18;this.state.active=null;this.state.updatedAt=Date.now();this.sync();
  }
  update(dt){
@@ -126,10 +142,13 @@ export class EmergencyRescueSystem{
     if(dir.length()>1.5){dir.normalize();r.mesh.position.addScaledVector(dir,r.speed*dt);}
    }
    if(this.active.ttl<=0){this.resolve('avoid');}
+  }else{
+   this.dispatchState.roadBlock=Math.max(0,(this.dispatchState.roadBlock||0)-dt*.025);this.dispatchState.traffic=Math.max(0,(this.dispatchState.traffic||0)-dt*.02);this.dispatchState.panic=Math.max(0,(this.dispatchState.panic||0)-dt*.018);
+  }
   }
   if(this.timer>=2){
    this.timer=0;this.state.active=this.active?{id:this.active.id,type:this.active.type,district:this.active.district,ttl:this.active.ttl}:null;this.state.updatedAt=Date.now();this.sync();
   }
  }
- sync(){this.game.state.update({emergencyRescue:this.state});}
+ sync(){this.game.state.update({emergencyRescue:{...this.state,dispatch:{...this.dispatchState}}});}
 }
