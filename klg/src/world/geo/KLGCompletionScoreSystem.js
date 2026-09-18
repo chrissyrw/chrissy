@@ -1,6 +1,6 @@
 const clamp=(n,a=0,b=100)=>Math.max(a,Math.min(b,n));
 export class KLGCompletionScoreSystem{
- constructor(game){this.game=game;this.tick=0;this.categories={coreRuntime:{weight:1,base:100},worldSimulation:{weight:1.2,base:94},gameplayLoop:{weight:1.4,base:93},missions:{weight:1.3,base:92},opportunities:{weight:1.1,base:92},socialCrew:{weight:1.1,base:94},economy:{weight:1,base:92},persistence:{weight:1,base:91},ux:{weight:.8,base:75},productionReadiness:{weight:.8,base:55}};}
+ constructor(game){this.game=game;this.tick=0;this.categories={coreRuntime:{weight:1,base:100},worldSimulation:{weight:1.2,base:94},gameplayLoop:{weight:1.4,base:93},missions:{weight:1.3,base:92},opportunities:{weight:1.1,base:92},socialCrew:{weight:1.1,base:94},economy:{weight:1,base:92},persistence:{weight:1,base:91},ux:{weight:.8,base:86},productionReadiness:{weight:.8,base:72}};}
  telemetry(){return this.game.state.get().gameplayTelemetry?.counts||{};}
  audit(){return Number(this.game.state.get().completionAudit?.score||0);}
  score(){
@@ -10,6 +10,8 @@ export class KLGCompletionScoreSystem{
    if(name==='opportunities'&&t.opportunityAccepted>0)v+=4;
    if(name==='socialCrew'&&(t.social+t.crew)>0)v+=4;
    if(name==='economy'&&t.economy>0)v+=4;
+   if(name==='ux'&&this.game.contextualHUD&&this.game.missionHUD&&this.game.opportunityFeedback&&this.game.navigationFeedback)v+=4;
+   if(name==='productionReadiness'){const p=this.game.state.get().productionReadiness?.score||0;v+=Math.min(8,Math.round(p/10));}
    if(name==='persistence'&&audit>=80)v+=3;
    if(name==='gameplayLoop')v+=Math.min(3,Math.round((t.missionStarted+t.opportunityGenerated+t.opportunityDiscovered)/6));
    cats[name]=clamp(Math.round(v));}
