@@ -13,7 +13,7 @@ export class RwandaGeoSystem{
     try{
       const params=new URLSearchParams({where:'1=1',outFields:'*',returnGeometry:'true',outSR:'3857',f:'geojson',resultRecordCount:'1000'});
       const res=await fetch(`${RSA_ROAD_QUERY}?${params}`);if(!res.ok)throw new Error(`RSA roads HTTP ${res.status}`);const data=await res.json();
-      const count=this.db.ingestGeoJSON(data);this.graph.build(this.db.roads,(x,y)=>this.project(x,y));this.renderRoads();this.loaded=true;this.game.events.emit('geo:roads-loaded',{count,nodes:this.graph.nodes.size,edges:this.graph.edges.size,source:this.db.source});
+      const count=this.db.ingestGeoJSON(data);this.graph.build(this.db.roads,(x,y)=>this.project(x,y));this.renderRoads();this.loaded=true;this.game.events.emit('geo:roads-loaded',{count,nodes:this.graph.nodes.size,edges:this.graph.edges.size,source:this.db.source});this.game.events.emit('geo:road-graph-ready',this.graph);
     }catch(error){this.game.events.emit('geo:error',{source:'RSA roads',message:error.message});}
     finally{this.loading=false;}
   }
