@@ -20,7 +20,7 @@ export class PhysicalDeliverySystem{
   worldPoint(district){
     const geo=this.game.geo;if(!geo)return null;
     const a=DISTRICT_ANCHORS[district];if(!a)return null;
-    return geo.project((a[0]-geo.origin.lon)*6378137*DEG/Math.cos(geo.origin.lat*DEG),2*6378137*Math.log(Math.tan(Math.PI/4+(a[1]*DEG)/2)));
+    return geo.project(a[0]*6378137*DEG,2*6378137*Math.log(Math.tan(Math.PI/4+(a[1]*DEG)/2)));
   }
   playerPosition(){
     const v=this.game.vehicles.active;return (v?.mesh||this.game.player)?.position||null;
