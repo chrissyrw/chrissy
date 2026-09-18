@@ -1,44 +1,28 @@
-# KLG Completion Status — Batch Hardening
+# KLG Completion Status — UX + Production Batch
 
-## Current category targets
+Current development coverage is calculated from audited capability contracts plus runtime telemetry.
 
-| Category | Target |
-|---|---:|
-| Core Runtime | 100% |
-| World Simulation | 94% |
-| Gameplay Loop | 93% |
-| Missions | 92% |
-| Opportunities | 92% |
-| Social + Crew | 94% |
-| Economy | 92% |
-| Persistence | 91% |
-| UX / UI | 75% |
-| Production Readiness | 55% |
+## Category targets
 
-**Overall target score:** ~89%
+- Core Runtime: 100%
+- World Simulation: 94%
+- Gameplay Loop: 93%
+- Missions: 92%
+- Opportunities: 92%
+- Social + Crew: 94%
+- Economy: 92%
+- Persistence: 91%
+- UX / UI: 86%
+- Production Readiness: 72%
 
-The overall score intentionally remains below 90% because UX/UI and production readiness are still the largest unfinished areas.
+The remaining gap is concentrated in real visual UI implementation, production geo/data hardening, runtime error recovery, and release tooling.
 
-## Batch implemented
+## UX systems added
 
-- Canonical mission resolver
-- Mission objective progress tracking
-- Mission failure/timeout handling
-- Opportunity discovery layer
-- Runtime gameplay telemetry
-- KLG weighted completion score
-- Completion gates
-- Completion report state/events
-- Hardened completion audit capability coverage
-- Hardened opportunity discovery coverage
+- Contextual HUD state
+- Mission HUD state
+- Opportunity discovery feedback
+- Navigation feedback
+- Production readiness audit
 
-## Completion gates
-
-- 25% Prototype
-- 50% Playable Core
-- 70% Vertical Slice
-- 85% Alpha
-- 95% Beta
-- 100% Release Candidate
-
-This score is a development coverage metric, not a claim that the game is production-ready.
+The UI systems expose stable state/events so the visual layer can render them without coupling gameplay logic to presentation.
