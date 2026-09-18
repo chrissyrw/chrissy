@@ -8,6 +8,7 @@ const DISTRICT_STYLES={
   Nyarutarama:{palette:'upscale',motifs:['minimal-rwanda','greenery','stone-bands'],materials:['stone','glass','plaster']},
   Rebero:{palette:'hill',motifs:['hill-lines','imigongo','terrace-bands'],materials:['stone','timber','plaster']},
   Kicukiro:{palette:'neighborhood',motifs:['imigongo','woven-grid','local-signage'],materials:['plaster','brick','metal']},
+  Gikondo:{palette:'industrial',motifs:['industrial-frames','imigongo','local-signage'],materials:['concrete','painted-metal','brick']},
   Kanombe:{palette:'gateway',motifs:['airport-lines','rwanda-pattern','wayfinding'],materials:['stone','metal','glass']}
 };
 const NAME_KEYS=['name','official_name','alt_name','loc_name','name:en','name:rw'];
