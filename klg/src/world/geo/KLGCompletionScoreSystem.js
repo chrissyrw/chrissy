@@ -1,6 +1,6 @@
 const clamp=(n,a=0,b=100)=>Math.max(a,Math.min(b,n));
 export class KLGCompletionScoreSystem{
- constructor(game){this.game=game;this.tick=0;this.categories={coreRuntime:{weight:1,base:100},worldSimulation:{weight:1.2,base:94},gameplayLoop:{weight:1.4,base:93},missions:{weight:1.3,base:92},opportunities:{weight:1.1,base:92},socialCrew:{weight:1.1,base:94},economy:{weight:1,base:92},persistence:{weight:1,base:91},ux:{weight:.8,base:78},productionReadiness:{weight:.8,base:68}};}
+ constructor(game){this.game=game;this.tick=0;this.categories={coreRuntime:{weight:1,base:100},worldSimulation:{weight:1.2,base:94},gameplayLoop:{weight:1.4,base:93},missions:{weight:1.3,base:92},opportunities:{weight:1.1,base:92},socialCrew:{weight:1.1,base:94},economy:{weight:1,base:92},persistence:{weight:1,base:91},ux:{weight:.8,base:75},productionReadiness:{weight:.8,base:55}};}
  telemetry(){return this.game.state.get().gameplayTelemetry?.counts||{};}
  audit(){return Number(this.game.state.get().completionAudit?.score||0);}
  score(){
