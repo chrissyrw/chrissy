@@ -7,9 +7,10 @@ export class EconomySystem {
       'Nyamirambo Cafe':{type:'food',price:45,rep:1},
       'Kigali Fuel':{type:'fuel',price:85,rep:1}
     };
-    this.cooldown=0;
+    this.cooldown=0;this.game.events.on('economy:mission-impact',e=>this.applyMissionImpact(e));
   }
   getShop(name){return this.shops[name]||null;}
+  applyMissionImpact(e={}){const s=this.game.state.get(),district=e.district||s.world.district||'KigaliCBD',impact=Number(e.impact||0);const economy={...(s.economy||{}),missionPressure:Math.max(-1,Math.min(1,Number(s.economy?.missionPressure||0)+impact)),districtActivity:{...(s.economy?.districtActivity||{})}};economy.districtActivity[district]=Math.max(0,Math.min(2,Number(economy.districtActivity[district]||1)+impact));this.game.state.update({economy});this.game.events.emit('economy:state-shift',{district,impact});}
   rewardScale(){return this.game.state.get().economy?.rewardScale||1;}
   interact(name){
     const shop=this.getShop(name); if(!shop)return false;
