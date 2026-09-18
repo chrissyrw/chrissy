@@ -1,5 +1,8 @@
 const ASSETS=[
  {id:'gikondo-industrial-heritage',district:'Gikondo',type:'district-signature',label:'Gikondo Industrial & Community Heritage',motifs:['industrial-frames','local-signage','imigongo'],priority:1},
+ {id:'gikondo-community-life',district:'Gikondo',type:'community-design',label:'Gikondo Community Life',motifs:['football','food-stalls','local-signage'],priority:2},
+ {id:'gikondo-workshop-culture',district:'Gikondo',type:'industrial-design',label:'Gikondo Workshop Culture',motifs:['metal-gates','painted-signage','warehouse-fronts'],priority:2},
+ {id:'gikondo-hill-views',district:'Gikondo',type:'landscape-design',label:'Gikondo Hill View Corridors',motifs:['terraces','stone','greenery'],priority:3},
  {id:'kigali-civic-portrait-mural',district:'KigaliCBD',type:'civic-mural',label:'Kigali Civic Portrait Mural',motifs:['rwanda-pattern','portrait-panel'],priority:2,assetSlot:'civic-portrait'},
  {id:'rwanda-imigongo-facade',district:'Nyamirambo',type:'cultural-facade',label:'Imigongo Facade',motifs:['imigongo'],priority:3},
  {id:'kigali-hills-signage',district:'Rebero',type:'wayfinding',label:'Kigali Hills Wayfinding',motifs:['hill-lines','rwanda-pattern'],priority:3},
