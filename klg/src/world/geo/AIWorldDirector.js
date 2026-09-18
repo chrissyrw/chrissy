@@ -63,7 +63,7 @@ export class AIWorldDirector{
     const safety=CLAMP(Number(security.heat||0)/100+.45*(conflicts.length/Math.max(1,5)));
     const logisticsPressure=CLAMP(Number(cargo.pressure||0));
     const weather=world.weather==='storm'||world.weather==='rain'?0.55:0.15;
-    const opportunityPressure=CLAMP(.35*economic+.25*logisticsPressure+.2*traffic+.2*socialPressure);
+    const opportunityPressure=CLAMP(.35*economic+.25*logisticsPressure+.2*traffic+.2*socialPressure);\n    const forecast=s.worldSimulationIntelligence||{};
 
     return{
       district:world.district||'Kigali',
@@ -129,11 +129,11 @@ export class AIWorldDirector{
 
     return targets.map(([action,pressure,district])=>{
       const fit=this.playerFit(action,s);
-      const novelty=1-this.repetitionPenalty(action,district.name);\n      const memory=this.game.state.get().adaptiveWorldMemory?.districts?.[district.name]||{};\n      const memoryBias=CLAMP(Number(memory.trust||0)*.12-Number(memory.pressure||0)*.08);
+      const novelty=1-this.repetitionPenalty(action,district.name);\n      const memory=this.game.state.get().adaptiveWorldMemory?.districts?.[district.name]||{};\n      const forecast=this.game.state.get().worldSimulationIntelligence?.forecasts?.find(f=>f.horizon===10);\n      const forecastRisk=forecast?.hot?.find(x=>x.district===district.name)?.risk||0;\n      const forecastOpportunity=forecast?.hot?.find(x=>x.district===district.name)?.opportunity||0;\n      const memoryBias=CLAMP(Number(memory.trust||0)*.12-Number(memory.pressure||0)*.08);
       const cooldown=this.cooldownPenalty(action);
-      const consequence=CLAMP(pressure*.65+fit*.2+novelty*.15+memoryBias);
+      const consequence=CLAMP(pressure*.55+fit*.18+novelty*.12+memoryBias+forecastRisk*.08+forecastOpportunity*.07);
       const score=Math.max(0,pressure)*ACTIONS[action].weight*(.55+.45*fit)*novelty*(1-cooldown)*(.65+.35*consequence);
-      return{action,district:district.name,pressure:CLAMP(pressure),fit,novelty,cooldown,consequence,memoryBias,score};
+      return{action,district:district.name,pressure:CLAMP(pressure),fit,novelty,cooldown,consequence,memoryBias,forecastRisk,forecastOpportunity,score};
     }).filter(x=>x.score>.12).sort((a,b)=>b.score-a.score);
   }
 
