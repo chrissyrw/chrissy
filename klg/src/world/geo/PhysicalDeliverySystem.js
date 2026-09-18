@@ -64,7 +64,7 @@ export class PhysicalDeliverySystem{
     this.state.history.unshift({...a});
     this.state.history=this.state.history.slice(0,32);
     this.state.active=null;this.sync();
-    this.game.events.emit('cargo:delivery-arrived',{orderId:a.orderId,district:a.to,reward:a.reward});
+    this.game.events.emit('cargo:delivery-arrived',{orderId:a.orderId,district:a.to,to:a.to,from:a.from,routeId:a.routeId,reward:a.reward,status:a.status});
   }
   fail(reason){
     const a=this.state.active;if(!a)return;
@@ -73,7 +73,7 @@ export class PhysicalDeliverySystem{
     a.status='failed';a.reason=reason;a.failedAt=Date.now();
     this.state.history.unshift({...a});this.state.history=this.state.history.slice(0,32);
     this.state.active=null;this.sync();
-    this.game.events.emit('cargo:delivery-failed',{orderId:a.orderId,reason});
+    this.game.events.emit('cargo:delivery-failed',{orderId:a.orderId,reason,to:a.to,from:a.from,routeId:a.routeId,status:a.status});
   }
   update(dt){
     this.tick+=dt;if(this.tick<.25)return;const step=this.tick;this.tick=0;
